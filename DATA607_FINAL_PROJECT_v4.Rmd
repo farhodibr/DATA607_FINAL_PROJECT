@@ -120,7 +120,7 @@ beach_boys_df2 <- get_songs_df(html_beach_boys, "#mw-content-text > div.mw-conte
 beach_boys_df3 <- get_songs_df(html_beach_boys, "#mw-content-text > div.mw-content-ltr.mw-parser-output > table:nth-child(25)") # 1980s
 beach_boys_df4 <- get_songs_df(html_beach_boys, "#mw-content-text > div.mw-content-ltr.mw-parser-output > table:nth-child(27)") # 1990s - present
 joni_mitchell_df <- get_songs_df(html_joni_mitchell, "#mw-content-text > div.mw-content-ltr.mw-parser-output > table:nth-child(19)")
-stevie_wonder_df <- get_songs_df(html_stevie_wonder, "#mw-content-text > div.mw-content-ltr.mw-parser-output > table:nth-child(16)") # 1960s
+#stevie_wonder_df <- get_songs_df(html_stevie_wonder, "#mw-content-text > div.mw-content-ltr.mw-parser-output > table:nth-child(16)") # 1960s. Nor working, probably structure had been changed
 stevie_wonder_df2 <- get_songs_df(html_stevie_wonder, "#mw-content-text > div.mw-content-ltr.mw-parser-output > table:nth-child(18)") # 1970s
 stevie_wonder_df3 <- get_songs_df(html_stevie_wonder, "#mw-content-text > div.mw-content-ltr.mw-parser-output > table:nth-child(20)") # 1980s
 stevie_wonder_df4 <- get_songs_df(html_stevie_wonder, "#mw-content-text > div.mw-content-ltr.mw-parser-output > table:nth-child(22)") # 1990s - present
@@ -281,7 +281,7 @@ beach_boys_df4_clean <- beach_boys_df4_clean |>
 # A side and B side single appear in the same cell in single variable, so we need to break them out into individual observations
 beach_boys_df4_clean <- separate_rows(beach_boys_df4_clean, title, sep = '""')
 beach_boys_df4_clean <- separate_rows(beach_boys_df4_clean, title, sep = '" "')
-beach_boys_df4_clean
+the_beach_boys_df4_clean <- beach_boys_df4_clean
 ```
 
 ```{r}
@@ -309,7 +309,7 @@ joni_mitchell_df_clean$title <- str_extract(joni_mitchell_df_clean$title , "^(.)
 unique(joni_mitchell_df_clean$title)
 ```
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 # Stevie Wonder
 stevie_wonder_df
 stevie_wonder_df <- stevie_wonder_df |>
@@ -548,10 +548,209 @@ lauryn_hill_df_clean
 #<<<<<<<<<<---------------Gillian McGovern's code ends-------------->>>>>>>>>>>>>>>>
 ```
 
+## Creating a single dataframe for Artist/Song/Album/Year
+
+```{r}
+# This code chunk is created by Farhod Ibragimov
+artist_dfs <- c("the_beach_boys_df4_clean",
+                    "joni_mitchell_df_clean",
+                    #"stevie_wonder_df4_clean",
+                    "the_beatles_df_clean",
+                    "nirvana_df_clean",
+                    "fleetwood_mac_df_clean",
+                    "prince_df4_clean",
+                    "bob_dylan_df_clean",
+                    "lauryn_hill_df_clean")
+```
+
+```{r}
+# This code chunk is created by Farhod Ibragimov
+
+# This function:
+# - extracts artist name from object name (everything before "_df")
+# - cleans song titles
+# - adds artist column
+# - saves cleaned df to global env with name like "artist_cleaned_songs"
+
+clean_and_save_songs_df <- function(df_name_string) {
+  # get df by name
+  df <- get(df_name_string, envir = .GlobalEnv)
+
+  # get artist name from df name (before "_df")
+  artist_id <- str_extract(df_name_string, "^(.*?)(?=_df)")
+  artist_title <- str_to_title(str_replace_all(artist_id, "_", " "))
+
+  cleaned_df <- df |>
+    mutate(
+      # clean title — remove quotes, () [] {}, cut after cd, us, uk etc.
+      title = title |>
+        str_trim() |>
+        str_replace_all('"', "") |>
+        str_remove_all("\\(.*?\\)") |>
+        str_remove_all("\\[.*?\\]") |>
+        str_remove_all("\\{.*?\\}") |>
+        str_remove_all("(?i)[ ]?(cd|us|uk|canadian)[\\s\\-:]+.*$") |>
+        str_squish(),
+      # add artist column
+      artist = artist_title
+    ) |>
+    # drop junk rows like "denotes", "not released", etc.
+    filter(
+      !str_detect(title, "(?i)denotes|indicates|refers to|represents|not released")
+    ) |>
+    # keep only one row per title
+    distinct(title, .keep_all = TRUE)
+
+  # save cleaned df to global env
+  cleaned_df_name <- paste0(artist_id, "_cleaned_songs")
+  assign(cleaned_df_name, cleaned_df, envir = .GlobalEnv)
+
+  # if album/year column missing, add NA
+  if (!"album" %in% names(cleaned_df)) cleaned_df$album <- NA
+  if (!"year" %in% names(cleaned_df)) cleaned_df$year <- NA
+
+  # keep only needed columns
+  minimal_df <- cleaned_df |>
+    select(artist, title, album, year)
+
+  # if all_artists_songs doesn’t exist, create it
+  if (!exists("all_artists_songs", envir = .GlobalEnv)) {
+    assign("all_artists_songs", minimal_df, envir = .GlobalEnv)
+  } else {
+    # if exists, add to it
+    existing <- get("all_artists_songs", envir = .GlobalEnv)
+    updated <- bind_rows(existing, minimal_df)
+    assign("all_artists_songs", updated, envir = .GlobalEnv)
+  }
+
+  return(cleaned_df)
+}
+
+
+
+
+
+
+#rm(all_artists_songs)
+
+artists_songs_album <- invisible(lapply(artist_dfs, clean_and_save_songs_df))
+
+write.csv(all_artists_songs, "all_artists_songs.csv")
+
+```
+
+```{r}
+#for (df_name in artist_dfs) {
+ # clean_and_save_songs_df(df_name)
+#}
+```
+
+## Creating messy SQL database from all_artists_songs and returning it as tidy df
+
+```{r eval=FALSE, include=FALSE}
+# This code chunk is created by Farhod Ibragimov
+
+# get values securely from env
+user <- Sys.getenv("MYSQL_USER")
+password <- Sys.getenv("MYSQL_PASSWORD")
+dbname <- Sys.getenv("MYSQL_DB")
+host <- Sys.getenv("MYSQL_HOST")
+port <- as.integer(Sys.getenv("MYSQL_PORT"))
+print(user)
+
+# connect to MySQL
+con <- dbConnect(
+  RMariaDB::MariaDB(),
+  user = "glavvrach",
+  password = "Malika@0513",
+  dbname = "data607final",
+  host = "data607final.mysql.database.azure.com",
+  port = 3306,
+  ssl.ca = "C:\\Users\\farho\\Downloads\\DigiCertGlobalRootCA.crt.pem"
+
+)
+```
+
+
+```{r eval=FALSE, include=FALSE}
+# This code chunk is created by Farhod Ibragimov
+
+messy_all_artists <- all_artists_songs |>
+  mutate(
+    song_1 = title,
+    song_2 = ifelse(row_number() %% 2 == 0, paste(title, "Remix"), NA),  # some second titles
+    notes = case_when(
+      grepl("Remix", title) ~ "CD version",
+      grepl("Love", title, ignore.case = TRUE) ~ "— denotes b-side",
+      TRUE ~ ""
+    ),
+    album_name = album,
+    release_year = year,
+    id = row_number()  # ✅ move row_number here
+  ) |>
+  select(id, artist_name = artist, song_1, song_2, album_name, release_year, notes)
+
+
+# upload messy table to MySQL
+dbWriteTable(con, "messy_songs", messy_all_artists, overwrite = TRUE, row.names = FALSE)
+```
+
+```{r eval=FALSE, include=FALSE}
+
+# This code chunk is created by Farhod Ibragimov
+
+messy_from_mysql <- dbReadTable(con, "messy_songs")
+
+tidy_from_mysql <- messy_from_mysql |>
+  filter(!is.na(artist_name)) |>
+  filter(!str_detect(notes, "(?i)denotes|cd|remix")) |>
+  pivot_longer(
+    cols = starts_with("song_"),
+    names_to = "song_slot",
+    values_to = "title"
+  ) |>
+  # Remove missing or empty titles
+  filter(!is.na(title), str_trim(title) != "") |>
+  # Remove titles with remix/variation keywords
+  filter(!str_detect(title, "(?i)remix|version|edit|live|instrumental|mix|b[- ]?side")) |>
+  distinct(artist_name, title, .keep_all = TRUE) |>
+  select(artist = artist_name, title, album = album_name, year = release_year)
+write.csv(tidy_from_mysql, "tidy_from_mysql.csv")
+
+dbDisconnect(con)
+```
+
+
+
+```{r eval=FALSE, include=FALSE}
+# This code chunk is created by Farhod Ibragimov
+# make a copy of clean df
+messy_all_artists <- all_artists_songs |>
+  mutate(
+    id = row_number(),  
+    song_1 = title,
+    song_2 = ifelse(row_number() %% 2 == 0, paste(title, "Remix"), NA),  # some second titles
+    notes = case_when(
+      grepl("Remix", title) ~ "CD version",
+      grepl("Love", title, ignore.case = TRUE) ~ "— denotes b-side",
+      TRUE ~ ""
+    ),
+    album_name = album,
+    release_year = year
+  ) |>
+  select(id, artist_name = artist, song_1, song_2, album_name, release_year, notes)
+
+
+# preview messy version
+head(messy_all_artists)
+```
+
 
 ## Get the Song Lyrics Using Genius.com API
 
 ```{r}
+
+# This code chunk is created by Farhod Ibragimov
 #<<<<<<<---------------Farhod Ibragimov's code is below------------------->>>>>>>>>>>>
 
 # Genius API token (token needs to be keyed before submitting the project). I'll leave it as is for now.
@@ -644,6 +843,8 @@ print(song_url)
 ```
 
 ```{r}
+# This code chunk is created by Farhod Ibragimov
+
 get_song_sentiment <- function(artist_name, song_title) {
   song_url <- search_song_final(song_title, artist_name)
   if (is.na(song_url)) {
@@ -746,12 +947,15 @@ lyrics_df <- scraped_lyrics_df
   if (length(top_emotion) == 0) top_emotion <- NA
 
   return(tibble(artist = artist_name, song = song_title, top_emotion = top_emotion))
+ # return(scraped_lyrics_df)
 }
+
+scraped_lyrics_test <- get_song_sentiment(artist_band, song_name)
 ```
 
 
 ```{r}
-all_artists_songs <- read_csv("https://raw.githubusercontent.com/aaliyahmjh/DATA607Project/refs/heads/main/all_artists_songs.csv", show_col_types = FALSE) # few bug fixes needed, will need to reenter.
+all_artists_songs <- read_csv("https://raw.githubusercontent.com/farhodibr/DATA607_FINAL_PROJECT/refs/heads/main/tidy_from_mysql.csv", show_col_types = FALSE) # few bug fixes needed, will need to reenter.
 
 # Grab 5 songs from each of the top 10 artists
 get_top5_valid_sentiments <- function(artist_name, song_titles, max_songs = 5) {
