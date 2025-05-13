@@ -19,6 +19,18 @@ library(stringr)
 library(rvest)
 library(janitor)
 library(stringr)
+library(tidytext)
+library(tibble)
+library(textdata)
+library(tidyr)
+library(readr)
+library(purrr)
+library(forcats)
+library(ggplot2)
+
+
+# Load sentiment lexicons
+nrc  <- get_sentiments("nrc")
 ```
 
 
@@ -705,4 +717,145 @@ lyrics_text_cleaned <- temp_cleaned_vector[nzchar(temp_cleaned_vector)]
 head(scraped_lyrics_df, 25)
 ```
 
+```{r}
+# Create a function to perform sentiment analysis on a single song
+get_song_sentiment <- function(artist_name, song_title) {
 
+  base_url <- "https://api.genius.com/search"
+  query <- list(q = paste(song_title, artist_name))
+  res <- GET(
+    url = base_url,
+    add_headers(Authorization = paste("Bearer", genius_token)),
+    query = query
+  )
+# If the API call fails, return NA 
+  if (status_code(res) != 200) {
+    return(tibble
+           (artist = artist_name, 
+             song = song_title, 
+             positive = NA, 
+             negative = NA, 
+             score = NA, 
+             top_emotion = NA
+             ))
+  }
+  # Extract the list of potential matches from the API response
+  hits <- fromJSON(content(res, "text", encoding = "UTF-8"), flatten = TRUE)$response$hits
+  song_url <- NA
+  for (i in seq_len(nrow(hits))) {
+    if (str_detect(tolower(hits$result.primary_artist.name[i]), tolower(artist_name))) {
+      song_url <- hits$result.url[i]
+      break
+    }
+  }
+  if (is.na(song_url)) {
+    return(tibble
+           (artist = artist_name, 
+             song = song_title, 
+             positive = NA, 
+             negative = NA, 
+             score = NA, 
+             top_emotion = NA
+             ))
+  }
+  # Scrape lyrics
+  page_html <- tryCatch(read_html(song_url), error = function(e) return(NULL))
+  if (is.null(page_html)) {
+    return(tibble
+           (artist = artist_name, 
+             song = song_title, 
+             positive = NA, 
+             negative = NA, 
+             score = NA, 
+             top_emotion = NA
+             ))
+  }
+
+  lyrics_nodes <- html_elements(page_html, "div[data-lyrics-container='true']")
+  if (length(lyrics_nodes) == 0) return(tibble(artist = artist_name, song = song_title, positive = NA, negative = NA, score = NA, top_emotion = NA))
+
+  lyrics_text <- lyrics_nodes %>%
+    html_text2() %>%
+    str_split("\n") %>%
+    unlist() %>%
+    str_remove_all("\\[[^\\]]+\\]") %>%
+    str_trim() %>%
+    .[nzchar(.)]
+
+  lyrics_df <- tibble(line = seq_along(lyrics_text), text = lyrics_text)
+
+  # Tokenize the lyrics into words
+  words <- lyrics_df %>%
+    unnest_tokens(word, text)
+
+
+  # Use NRC lexicon to get the most frequent emotion (excluding "positive"/"negative" - too vague)
+top_emotion <- words %>%
+  inner_join(nrc, by = "word", relationship = "many-to-many") %>%
+  filter(!sentiment %in% c("positive", "negative")) %>%
+  count(sentiment, sort = TRUE) %>%
+  slice_head(n = 1) %>%
+  pull(sentiment)
+
+# If no emotion found, set to NA
+if (length(top_emotion) == 0) top_emotion <- NA
+
+# Return artist, song, and top emotion
+return(tibble(
+  artist = artist_name,
+  song = song_title,
+  top_emotion = top_emotion
+))
+}
+
+```
+
+
+```{r}
+all_artists_songs <- read_csv("https://raw.githubusercontent.com/aaliyahmjh/DATA607Project/refs/heads/main/all_artists_songs.csv", show_col_types = FALSE) # few bug fixes needed, will need to reenter.
+
+# Grab 5 songs from each of the top 10 artists
+get_top5_valid_sentiments <- function(artist_name, song_titles, max_songs = 5) {
+  results <- list()
+  for (song in song_titles) {
+    result <- get_song_sentiment(artist_name, song)
+
+    if (!is.na(result$top_emotion)) {
+      results <- append(results, list(result))
+    }
+  # Stop once we have enough(5) valid songs
+    if (length(results) >= max_songs) {
+      break
+    }
+  }
+
+  # Combine all valid results into a dataframe
+  if (length(results) > 0) {
+    return(bind_rows(results))
+  } else {
+    return(tibble(artist = artist_name, song = NA, top_emotion = NA))
+  }
+}
+
+artist_song_list <- all_artists_songs %>%
+  group_by(artist) %>%
+  arrange(title) %>%  # Optional: sort by title or year
+  summarise(songs = list(title), .groups = "drop")
+
+# Now apply get_first_valid_sentiment to each row
+valid_sentiments <- artist_song_list %>%
+  mutate(sentiment_result = map2(artist, songs, get_top5_valid_sentiments)) %>%
+  unnest(sentiment_result, names_repair = "unique")
+
+print(valid_sentiments)
+```
+
+```{r}
+
+ggplot(valid_sentiments, aes(x = fct_infreq(top_emotion), fill = top_emotion)) +
+  geom_bar() +
+  coord_flip() +
+  labs(title = "Top Emotions in Songs by Top 10 Artists",
+       x = "Emotion", y = "Count") +
+  theme_minimal()
+```
