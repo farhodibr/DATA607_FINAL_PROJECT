@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 "","artist","title","album","year"
 "1","The Beach Boys","Somewhere Near Japan","Still Cruisin'","1990"
 "2","The Beach Boys","Kokomo","Still Cruisin'","1990"
@@ -792,4 +791,3 @@
 "393","Lauryn Hill","Feeling Good","Nina Revisited: A Tribute to Nina Simone","2015"
 "394","Lauryn Hill","Guarding the Gates","Queen & Slim: The Soundtrack","2019"
 "395","Lauryn Hill","Save the Day","The Rarities","2020"
->>>>>>> 00b6b51 (Added the function to clean all artists dfs and create one df)

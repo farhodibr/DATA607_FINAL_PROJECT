@@ -112,6 +112,7 @@ get_songs_df <- function(html, css_selector) {
   return(as.data.frame(songs[[1]]))
 }
 
+# Note: these Wikipedia pages can be updated, so it's possible this code won't run in the future (css selector would need to be updated)
 marvin_gaye_df <- get_songs_df(html_marvin_gaye, "#mw-content-text > div.mw-content-ltr.mw-parser-output > table:nth-child(30)") # 1960s
 marvin_gaye_df2 <- get_songs_df(html_marvin_gaye, "#mw-content-text > div.mw-content-ltr.mw-parser-output > table:nth-child(32)") # 1970 - 1984
 marvin_gaye_df3 <- get_songs_df(html_marvin_gaye, "#mw-content-text > div.mw-content-ltr.mw-parser-output > table:nth-child(34)") # Posthumous
@@ -120,10 +121,10 @@ beach_boys_df2 <- get_songs_df(html_beach_boys, "#mw-content-text > div.mw-conte
 beach_boys_df3 <- get_songs_df(html_beach_boys, "#mw-content-text > div.mw-content-ltr.mw-parser-output > table:nth-child(25)") # 1980s
 beach_boys_df4 <- get_songs_df(html_beach_boys, "#mw-content-text > div.mw-content-ltr.mw-parser-output > table:nth-child(27)") # 1990s - present
 joni_mitchell_df <- get_songs_df(html_joni_mitchell, "#mw-content-text > div.mw-content-ltr.mw-parser-output > table:nth-child(19)")
-#stevie_wonder_df <- get_songs_df(html_stevie_wonder, "#mw-content-text > div.mw-content-ltr.mw-parser-output > table:nth-child(16)") # 1960s. Nor working, probably structure had been changed
-stevie_wonder_df2 <- get_songs_df(html_stevie_wonder, "#mw-content-text > div.mw-content-ltr.mw-parser-output > table:nth-child(18)") # 1970s
-stevie_wonder_df3 <- get_songs_df(html_stevie_wonder, "#mw-content-text > div.mw-content-ltr.mw-parser-output > table:nth-child(20)") # 1980s
-stevie_wonder_df4 <- get_songs_df(html_stevie_wonder, "#mw-content-text > div.mw-content-ltr.mw-parser-output > table:nth-child(22)") # 1990s - present
+stevie_wonder_df <- get_songs_df(html_stevie_wonder, "#mw-content-text > div.mw-content-ltr.mw-parser-output > table:nth-child(18)") # 1960s
+stevie_wonder_df2 <- get_songs_df(html_stevie_wonder, "#mw-content-text > div.mw-content-ltr.mw-parser-output > table:nth-child(20)") # 1970s
+stevie_wonder_df3 <- get_songs_df(html_stevie_wonder, "#mw-content-text > div.mw-content-ltr.mw-parser-output > table:nth-child(22)") # 1980s
+stevie_wonder_df4 <- get_songs_df(html_stevie_wonder, "#mw-content-text > div.mw-content-ltr.mw-parser-output > table:nth-child(24)") # 1990s - present
 the_beatles_df <- get_songs_df(html_the_beatles, "#mw-content-text > div.mw-content-ltr.mw-parser-output > table:nth-child(10)")
 nirvana_df <- get_songs_df(html_nirvana, "#mw-content-text > div.mw-content-ltr.mw-parser-output > table:nth-child(20)")
 fleetwood_mac_df <- get_songs_df(html_fleetwood_mac, "#mw-content-text > div.mw-content-ltr.mw-parser-output > table:nth-child(23)")
@@ -309,7 +310,7 @@ joni_mitchell_df_clean$title <- str_extract(joni_mitchell_df_clean$title , "^(.)
 unique(joni_mitchell_df_clean$title)
 ```
 
-```{r eval=FALSE, include=FALSE}
+```{r}
 # Stevie Wonder
 stevie_wonder_df
 stevie_wonder_df <- stevie_wonder_df |>
