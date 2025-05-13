@@ -544,12 +544,16 @@ colnames(lauryn_hill_df_clean)[3:12] <- c("us", "us_r_and_b", "us_rhy", "aus", "
 lauryn_hill_df_clean <- lauryn_hill_df_clean |>
   pivot_longer(cols = us:uk, names_to = "albums_chart", values_to = "peak_chart_position")
 lauryn_hill_df_clean
+
+#<<<<<<<<<<---------------Gillian McGovern's code ends-------------->>>>>>>>>>>>>>>>
 ```
 
 
 ## Get the Song Lyrics Using Genius.com API
 
 ```{r}
+#<<<<<<<---------------Farhod Ibragimov's code is below------------------->>>>>>>>>>>>
+
 # Genius API token (token needs to be keyed before submitting the project). I'll leave it as is for now.
 genius_token <- "9em6wi6o9dAzPw5U_6qjYCOqRa2nQKZ26DjIe4anzXgCsJJT0hP5ZZsZK3UdsrzH"
 
@@ -638,10 +642,15 @@ print(song_url)
 
 
 ```
-## Scraping lyrics
 
 ```{r}
-# Using the song_url found previously to scrape the lyrics
+get_song_sentiment <- function(artist_name, song_title) {
+  song_url <- search_song_final(song_title, artist_name)
+  if (is.na(song_url)) {
+    return(tibble(artist = artist_name, song = song_title, top_emotion = NA))
+  }
+
+  # Using the song_url found previously to scrape the lyrics
 
 # Only run this if a valid song_url was found
 if (!is.na(song_url) && nzchar(song_url)) {
@@ -699,9 +708,6 @@ lyrics_text_cleaned <- temp_cleaned_vector[nzchar(temp_cleaned_vector)]
         text = lyrics_text_cleaned
       )
 
-      # Display the first few lines of the result
-      print("--- Scraped and Cleaned Lyrics (first few lines) ---")
-      print(head(scraped_lyrics_df))
 }
   } else {
     # Scraping skipped because reading the URL failed earlier
@@ -713,101 +719,34 @@ lyrics_text_cleaned <- temp_cleaned_vector[nzchar(temp_cleaned_vector)]
    warning("Cannot scrape lyrics because song_url was not found successfully.")
    scraped_lyrics_df <- NULL # Ensure variable exists even if scraping is skipped
 }
+  
+
 
 head(scraped_lyrics_df, 25)
-```
 
-```{r}
-# Create a function to perform sentiment analysis on a single song
-get_song_sentiment <- function(artist_name, song_title) {
+#<<<<<----------Farhod's code ends---------------->>>>>>>>>
 
-  base_url <- "https://api.genius.com/search"
-  query <- list(q = paste(song_title, artist_name))
-  res <- GET(
-    url = base_url,
-    add_headers(Authorization = paste("Bearer", genius_token)),
-    query = query
-  )
-# If the API call fails, return NA 
-  if (status_code(res) != 200) {
-    return(tibble
-           (artist = artist_name, 
-             song = song_title, 
-             positive = NA, 
-             negative = NA, 
-             score = NA, 
-             top_emotion = NA
-             ))
-  }
-  # Extract the list of potential matches from the API response
-  hits <- fromJSON(content(res, "text", encoding = "UTF-8"), flatten = TRUE)$response$hits
-  song_url <- NA
-  for (i in seq_len(nrow(hits))) {
-    if (str_detect(tolower(hits$result.primary_artist.name[i]), tolower(artist_name))) {
-      song_url <- hits$result.url[i]
-      break
-    }
-  }
-  if (is.na(song_url)) {
-    return(tibble
-           (artist = artist_name, 
-             song = song_title, 
-             positive = NA, 
-             negative = NA, 
-             score = NA, 
-             top_emotion = NA
-             ))
-  }
-  # Scrape lyrics
-  page_html <- tryCatch(read_html(song_url), error = function(e) return(NULL))
-  if (is.null(page_html)) {
-    return(tibble
-           (artist = artist_name, 
-             song = song_title, 
-             positive = NA, 
-             negative = NA, 
-             score = NA, 
-             top_emotion = NA
-             ))
+# <<<<---------Aali John's code is below---------------->>>>>>
+
+lyrics_df <- scraped_lyrics_df
+  if (is.null(lyrics_df)) {
+    return(tibble(artist = artist_name, song = song_title, top_emotion = NA))
   }
 
-  lyrics_nodes <- html_elements(page_html, "div[data-lyrics-container='true']")
-  if (length(lyrics_nodes) == 0) return(tibble(artist = artist_name, song = song_title, positive = NA, negative = NA, score = NA, top_emotion = NA))
-
-  lyrics_text <- lyrics_nodes %>%
-    html_text2() %>%
-    str_split("\n") %>%
-    unlist() %>%
-    str_remove_all("\\[[^\\]]+\\]") %>%
-    str_trim() %>%
-    .[nzchar(.)]
-
-  lyrics_df <- tibble(line = seq_along(lyrics_text), text = lyrics_text)
-
-  # Tokenize the lyrics into words
   words <- lyrics_df %>%
     unnest_tokens(word, text)
 
+  top_emotion <- words %>%
+    inner_join(nrc, by = "word", relationship = "many-to-many") %>%
+    filter(!sentiment %in% c("positive", "negative")) %>%
+    count(sentiment, sort = TRUE) %>%
+    slice_head(n = 1) %>%
+    pull(sentiment)
 
-  # Use NRC lexicon to get the most frequent emotion (excluding "positive"/"negative" - too vague)
-top_emotion <- words %>%
-  inner_join(nrc, by = "word", relationship = "many-to-many") %>%
-  filter(!sentiment %in% c("positive", "negative")) %>%
-  count(sentiment, sort = TRUE) %>%
-  slice_head(n = 1) %>%
-  pull(sentiment)
+  if (length(top_emotion) == 0) top_emotion <- NA
 
-# If no emotion found, set to NA
-if (length(top_emotion) == 0) top_emotion <- NA
-
-# Return artist, song, and top emotion
-return(tibble(
-  artist = artist_name,
-  song = song_title,
-  top_emotion = top_emotion
-))
+  return(tibble(artist = artist_name, song = song_title, top_emotion = top_emotion))
 }
-
 ```
 
 
@@ -817,23 +756,25 @@ all_artists_songs <- read_csv("https://raw.githubusercontent.com/aaliyahmjh/DATA
 # Grab 5 songs from each of the top 10 artists
 get_top5_valid_sentiments <- function(artist_name, song_titles, max_songs = 5) {
   results <- list()
-  for (song in song_titles) {
-    result <- get_song_sentiment(artist_name, song)
 
-    if (!is.na(result$top_emotion)) {
-      results <- append(results, list(result))
+  for (song in song_titles) {
+    res <- get_song_sentiment(artist_name, song)
+
+    # keep only song + top_emotion
+    if (!is.na(res$top_emotion)) {
+      results <- append(results, list(
+        tibble(song       = res$song,
+               top_emotion = res$top_emotion)
+      ))
     }
-  # Stop once we have enough(5) valid songs
-    if (length(results) >= max_songs) {
-      break
-    }
+
+    if (length(results) >= max_songs) break
   }
 
-  # Combine all valid results into a dataframe
   if (length(results) > 0) {
     return(bind_rows(results))
   } else {
-    return(tibble(artist = artist_name, song = NA, top_emotion = NA))
+    return(tibble(song = NA, top_emotion = NA))
   }
 }
 
@@ -841,7 +782,7 @@ artist_song_list <- all_artists_songs %>%
   group_by(artist) %>%
   summarise(songs = list(title), .groups = "drop")
 
-# Now apply get_first_valid_sentiment to each row
+# Now apply get_top5_valid_sentiments to each row
 valid_sentiments <- artist_song_list %>%
   mutate(sentiment_result = map2(artist, songs, get_top5_valid_sentiments)) %>%
   unnest(sentiment_result, names_repair = "unique")
@@ -850,7 +791,6 @@ print(valid_sentiments)
 ```
 
 ```{r}
-
 ggplot(valid_sentiments, aes(x = fct_infreq(top_emotion), fill = top_emotion)) +
   geom_bar() +
   coord_flip() +
@@ -858,3 +798,24 @@ ggplot(valid_sentiments, aes(x = fct_infreq(top_emotion), fill = top_emotion)) +
        x = "Emotion", y = "Count") +
   theme_minimal()
 ```
+
+```{r}
+valid_sentiments %>%
+  group_by(artist, top_emotion) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  arrange(artist, desc(n))
+
+ggplot(valid_sentiments, aes(x = fct_infreq(top_emotion), fill = artist)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Top Emotions by Artist", x = "Emotion", y = "Number of Songs") +
+  theme_minimal()
+```
+```{r}
+#Artists with the most emotionally varied songs
+valid_sentiments %>%
+  group_by(artist) %>%
+  summarise(num_unique_emotions = n_distinct(top_emotion)) %>%
+  arrange(desc(num_unique_emotions))
+```
+
+
