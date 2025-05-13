@@ -839,7 +839,6 @@ get_top5_valid_sentiments <- function(artist_name, song_titles, max_songs = 5) {
 
 artist_song_list <- all_artists_songs %>%
   group_by(artist) %>%
-  arrange(title) %>%  # Optional: sort by title or year
   summarise(songs = list(title), .groups = "drop")
 
 # Now apply get_first_valid_sentiment to each row
