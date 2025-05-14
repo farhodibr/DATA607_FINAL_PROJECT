@@ -694,7 +694,7 @@ write.csv(all_artists_songs, "all_artists_songs.csv")
 
 ## Creating messy SQL database from all_artists_songs and returning it as tidy df
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 # This code chunk is created by Farhod Ibragimov
 
 # get values securely from env
@@ -719,7 +719,7 @@ con <- dbConnect(
 ```
 
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 # This code chunk is created by Farhod Ibragimov
 
 messy_all_artists <- all_artists_songs |>
@@ -742,7 +742,7 @@ messy_all_artists <- all_artists_songs |>
 dbWriteTable(con, "messy_songs", messy_all_artists, overwrite = TRUE, row.names = FALSE)
 ```
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 
 # This code chunk is created by Farhod Ibragimov
 
@@ -769,7 +769,7 @@ dbDisconnect(con)
 
 
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 # This code chunk is created by Farhod Ibragimov
 # make a copy of clean df
 messy_all_artists <- all_artists_songs |>
