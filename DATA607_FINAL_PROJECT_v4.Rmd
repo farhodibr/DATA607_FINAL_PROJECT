@@ -59,6 +59,8 @@ library(forcats)
 library(ggplot2)
 library(doParallel)
 library(foreach)
+library(DBI)  
+library(RMariaDB)
 
 
 # Load sentiment lexicons
@@ -736,7 +738,13 @@ clean_and_save_songs_df <- function(df_name_string) {
 artists_songs_album <- invisible(lapply(artist_dfs, clean_and_save_songs_df))
 
 write.csv(all_artists_songs, "all_artists_songs.csv")
+all_artists_songs |>
+  group_by(artist, title) |>
+  filter(n() > 1) |>
+  arrange(artist, title)
 
+all_artists_songs <- all_artists_songs |>
+  distinct(artist, title, .keep_all = TRUE)
 ```
 
 ## Creating messy SQL database from all_artists_songs and returning it as tidy df
@@ -753,12 +761,11 @@ print(user)
 # connect to MySQL
 con <- dbConnect(
   RMariaDB::MariaDB(),
-  user = "glavvrach",
-  password = "Malika@0513",
-  dbname = "data607final",
-  host = "data607final.mysql.database.azure.com",
+   user = user,
+  password = password,
+  dbname = dbname,
+  host = host,
   port = 3306,
-  ssl.ca = "C:\\Users\\farho\\Downloads\\DigiCertGlobalRootCA.crt.pem"
 )
 ```
 
