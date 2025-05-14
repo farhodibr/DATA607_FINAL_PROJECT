@@ -432,7 +432,7 @@ stevie_wonder_df3_clean <- stevie_wonder_df3_clean |>
 
 # A side and B side single appear in the same cell in single variable, so we need to break them out into individual observations
 stevie_wonder_df3_clean <- separate_rows(stevie_wonder_df3_clean, title, sep = 'b/w')
-shead(tevie_wonder_df3_clean)
+head(stevie_wonder_df3_clean)
 
 ## 1990s - present ##
 stevie_wonder_df4 <- stevie_wonder_df4 |>
