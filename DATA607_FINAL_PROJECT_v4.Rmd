@@ -15,29 +15,26 @@ For this project, we want to analyze the emotions of the top Rolling Stone's art
 
 Data sources:
 
-Top artists data:
-* Rolling Stone Album Rankings CSV: https://github.com/rfordatascience/tidytuesday/tree/main/data/2024/2024-05-07
+Top artists data: \* Rolling Stone Album Rankings CSV: <https://github.com/rfordatascience/tidytuesday/tree/main/data/2024/2024-05-07>
 
-Songs data:
-* Wikipedia Singles Discography (List of singles, with selected chart positions and certifications chart). Example: https://en.wikipedia.org/wiki/The_Beatles_singles_discography
+Songs data: \* Wikipedia Singles Discography (List of singles, with selected chart positions and certifications chart). Example: <https://en.wikipedia.org/wiki/The_Beatles_singles_discography>
 
-Song Lyrics data:
-* Genius API and genius.com: https://docs.genius.com/
+Song Lyrics data: \* Genius API and genius.com: <https://docs.genius.com/>
 
 ## Motivation
 
 We chose these data sets so we can:
 
-* Identify the emotions of songs by top artists via the lyrics
-* Explore how emotions of popular songs have changed over time
-* Explore how emotions of popular songs vary by genre
+-   Identify the emotions of songs by top artists via the lyrics
+-   Explore how emotions of popular songs have changed over time
+-   Explore how emotions of popular songs vary by genre
 
 Additionally, these data sets would give us data preparation experience such as:
 
-* Tidying and transformation
-* API
-* Web scraping
-* MySQL
+-   Tidying and transformation
+-   API
+-   Web scraping
+-   MySQL
 
 ## Libraries
 
@@ -72,7 +69,6 @@ num_cores <- parallel::detectCores() - 1  # leave one core free
 cl <- makeCluster(num_cores)
 registerDoParallel(cl)
 ```
-
 
 ## Find the Top Artists
 
@@ -130,16 +126,16 @@ top10_by_rank
 
 The top artists are:
 
-* Marvin Gaye
-* The Beach Boys
-* Joni Mitchell
-* Stevie Wonder
-* The Beatles
-* Nirvana
-* Fleetwood Mac
-* Prince
-* Bob Dylan
-* Lauryn Hill
+-   Marvin Gaye
+-   The Beach Boys
+-   Joni Mitchell
+-   Stevie Wonder
+-   The Beatles
+-   Nirvana
+-   Fleetwood Mac
+-   Prince
+-   Bob Dylan
+-   Lauryn Hill
 
 ## Find the Songs for Each Artist
 
@@ -786,7 +782,6 @@ con <- dbConnect(
 )
 ```
 
-
 ```{r eval=FALSE, include=FALSE}
 messy_all_artists <- all_artists_songs |>
   mutate(
@@ -830,8 +825,6 @@ write.csv(tidy_from_mysql, "tidy_from_mysql.csv")
 dbDisconnect(con)
 ```
 
-
-
 ```{r eval=FALSE, include=FALSE}
 # make a copy of clean df
 messy_all_artists <- all_artists_songs |>
@@ -853,7 +846,6 @@ messy_all_artists <- all_artists_songs |>
 # preview messy version
 head(messy_all_artists)
 ```
-
 
 ## Get the Song Lyrics Using Genius.com API
 
@@ -1060,6 +1052,7 @@ head(words_test, 15)
 scraped_lyrics_test <- get_song_sentiments(words_test, artist_band, song_name, 1)
 head(scraped_lyrics_test, 15)
 ```
+
 ## Analysis
 
 Now we're ready to perform our analysis.
@@ -1173,7 +1166,6 @@ stopCluster(cl)
 
 ```
 
-
 Let's graph these charts and analyze:
 
 Word frequency:
@@ -1215,6 +1207,18 @@ ggplot(valid_sentiments, aes(x = fct_infreq(top_emotion), fill = top_emotion)) +
   theme_minimal()
 ```
 
+This bar chart summarizes the most frequent dominant emotion detected in songs by the top 10 Rolling Stone artists.
+
+-   Joy is by far the most common top emotion, appearing in nearly 25 songs, suggesting that uplifting and positive themes are prominent across these artists' lyrics.
+
+-   Anticipation is the second most frequent, often associated with themes of hope, excitement, or longing.
+
+-   Emotions like trust, anger, and fear are present but much less frequent.
+
+1.  Sadness and surprise appear rarely as the primary emotion, indicating they are less likely to be the dominant tone in top songs.
+
+Overall, this distribution highlights the emotional leaning of popular music from legendary artists toward positive or forward-looking sentiments.
+
 Top Emotions by Artist:
 
 ```{r}
@@ -1228,6 +1232,16 @@ ggplot(valid_sentiments, aes(x = fct_infreq(top_emotion), fill = artist)) +
   labs(title = "Top Emotions by Artist", x = "Emotion", y = "Number of Songs") +
   theme_minimal()
 ```
+
+This bar chart shows the most common emotional tone for songs by each of the top 10 Rolling Stone artists based on NRC sentiment analysis.
+
+-    **Joy** and **anticipation** are the most dominant emotions across artists, particularly for Marvin Gaye, The Beatles, and Fleetwood Mac.
+
+-    **Fear** and **sadness** appear most often in Lauryn Hill’s songs, indicating a more emotionally intense or somber tone.
+
+-    Bob Dylan stands out with a more diverse emotional profile that includes **anger** and **surprise**.
+
+The chart highlights how different artists tend to gravitate toward different emotional themes in their songwriting.
 
 Emotional Variety by Artist:
 
@@ -1243,20 +1257,19 @@ valid_sentiments %>%
 
 Our analysis showed us that:
 
-* Joy is the most frequent emotion overall, especially in the 1970s
-* Anticipation peaks in the 1980s/90s, then sadness rises in the 2000s
+-   Joy is the most frequent emotion overall, especially in the 1970s
+-   Anticipation peaks in the 1980s/90s, then sadness rises in the 2000s
 
 Some challenges we faced were:
 
-* Web scraping
-* Each Wikipedia page set up differently
-* Wikipedia page updated
-* Connecting to SQL
-* Code sometimes slow to run
-* Genius API doesn't provide song lyrics directly which added a step
+-   Web scraping
+-   Each Wikipedia page set up differently
+-   Wikipedia page updated
+-   Code sometimes slow to run
+-   Genius API doesn't provide song lyrics directly which added a step
 
 Potential Future Analysis:
 
-* Analyze full discographies per artist
-* Compare results using multiple sentiment dictionaries
-* Explore how emotions differ by genre or rank position
+-   Analyze full discographies per artist
+-   Compare results using multiple sentiment dictionaries
+-   Explore how emotions differ by genre or rank position
