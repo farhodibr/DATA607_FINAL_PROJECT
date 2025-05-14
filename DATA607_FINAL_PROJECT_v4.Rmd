@@ -282,6 +282,10 @@ beach_boys_df4_clean <- beach_boys_df4_clean |>
 # A side and B side single appear in the same cell in single variable, so we need to break them out into individual observations
 beach_boys_df4_clean <- separate_rows(beach_boys_df4_clean, title, sep = '""')
 beach_boys_df4_clean <- separate_rows(beach_boys_df4_clean, title, sep = '" "')
+
+the_beach_boys_df_clean <- beach_boys_df_clean
+the_beach_boys_df2_clean <- beach_boys_df2_clean
+the_beach_boys_df3_clean <- beach_boys_df3_clean
 the_beach_boys_df4_clean <- beach_boys_df4_clean
 ```
 
@@ -553,15 +557,50 @@ lauryn_hill_df_clean
 
 ```{r}
 # This code chunk is created by Farhod Ibragimov
-artist_dfs <- c("the_beach_boys_df4_clean",
-                    "joni_mitchell_df_clean",
-                    #"stevie_wonder_df4_clean",
-                    "the_beatles_df_clean",
-                    "nirvana_df_clean",
-                    "fleetwood_mac_df_clean",
-                    "prince_df4_clean",
-                    "bob_dylan_df_clean",
-                    "lauryn_hill_df_clean")
+artist_dfs <- c(
+  # Marvin Gaye
+  "marvin_gaye_df_clean",
+  "marvin_gaye_df2_clean",
+  "marvin_gaye_df3_clean",
+  
+  # The Beach Boys
+  "the_beach_boys_df_clean",
+  "the_beach_boys_df2_clean",
+  "the_beach_boys_df3_clean",
+  "the_beach_boys_df4_clean",  
+  
+  
+  # Joni Mitchell
+  "joni_mitchell_df_clean",
+  
+  # Stevie Wonder
+  "stevie_wonder_df_clean",
+  "stevie_wonder_df2_clean",
+  "stevie_wonder_df3_clean",
+  "stevie_wonder_df4_clean",
+  
+  # The Beatles
+  "the_beatles_df_clean",
+  
+  # Nirvana
+  "nirvana_df_clean",
+  
+  # Fleetwood Mac
+  "fleetwood_mac_df_clean",
+  
+  # Prince
+  "prince_df_clean",
+  "prince_df2_clean",
+  "prince_df3_clean",
+  "prince_df4_clean",
+  
+  # Bob Dylan
+  "bob_dylan_df_clean",
+  
+  # Lauryn Hill
+  "lauryn_hill_df_clean"
+)
+
 ```
 
 ```{r}
@@ -648,7 +687,7 @@ write.csv(all_artists_songs, "all_artists_songs.csv")
 
 ## Creating messy SQL database from all_artists_songs and returning it as tidy df
 
-```{r eval=FALSE, include=FALSE}
+```{r}
 # This code chunk is created by Farhod Ibragimov
 
 # get values securely from env
@@ -673,7 +712,7 @@ con <- dbConnect(
 ```
 
 
-```{r eval=FALSE, include=FALSE}
+```{r}
 # This code chunk is created by Farhod Ibragimov
 
 messy_all_artists <- all_artists_songs |>
@@ -687,7 +726,7 @@ messy_all_artists <- all_artists_songs |>
     ),
     album_name = album,
     release_year = year,
-    id = row_number()  # ✅ move row_number here
+    id = row_number()  
   ) |>
   select(id, artist_name = artist, song_1, song_2, album_name, release_year, notes)
 
@@ -696,7 +735,7 @@ messy_all_artists <- all_artists_songs |>
 dbWriteTable(con, "messy_songs", messy_all_artists, overwrite = TRUE, row.names = FALSE)
 ```
 
-```{r eval=FALSE, include=FALSE}
+```{r}
 
 # This code chunk is created by Farhod Ibragimov
 
@@ -723,7 +762,7 @@ dbDisconnect(con)
 
 
 
-```{r eval=FALSE, include=FALSE}
+```{r}
 # This code chunk is created by Farhod Ibragimov
 # make a copy of clean df
 messy_all_artists <- all_artists_songs |>
@@ -963,7 +1002,8 @@ scraped_lyrics_test <- get_song_sentiments(words_test, artist_band, song_name, 1
 scraped_lyrics_test
 ```
 ```{r}
-all_artists_songs <- read_csv("https://raw.githubusercontent.com/farhodibr/DATA607_FINAL_PROJECT/refs/heads/main/tidy_from_mysql.csv", show_col_types = FALSE) # few bug fixes needed, will need to reenter.
+#all_artists_songs <- all_artists_songs|>
+#  filter(# few bug fixes needed, will need to reenter.
 ```
 
 
