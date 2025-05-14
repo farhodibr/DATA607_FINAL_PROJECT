@@ -745,6 +745,20 @@ all_artists_songs |>
 
 all_artists_songs <- all_artists_songs |>
   distinct(artist, title, .keep_all = TRUE)
+all_artists_songs |>
+  group_by(artist, title) |>
+  filter(n() > 1) |>
+  arrange(artist, title)
+
+all_artists_songs <- all_artists_songs |>
+  distinct(artist, title, .keep_all = TRUE)
+
+```
+
+```{r}
+#for (df_name in artist_dfs) {
+ # clean_and_save_songs_df(df_name)
+#}
 ```
 
 ## Creating messy SQL database from all_artists_songs and returning it as tidy df
@@ -762,10 +776,13 @@ print(user)
 con <- dbConnect(
   RMariaDB::MariaDB(),
    user = user,
+  user = user,
   password = password,
   dbname = dbname,
   host = host,
   port = 3306,
+  
+
 )
 ```
 
