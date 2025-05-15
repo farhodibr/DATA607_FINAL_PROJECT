@@ -615,7 +615,7 @@ lauryn_hill_df_clean <- lauryn_hill_df_clean |>
 head(lauryn_hill_df_clean)
 ```
 
-We now we have a tidy song dataframe for each artist.
+We now have a tidy song dataframe for each artist.
 
 ## Creating a Single Dataframe for Artist/Song/Album/Year
 
