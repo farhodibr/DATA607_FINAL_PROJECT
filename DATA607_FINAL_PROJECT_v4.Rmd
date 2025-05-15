@@ -38,7 +38,7 @@ Additionally, these data sets would give us data preparation experience such as:
 
 ## Libraries
 
-```{r}
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 library(httr)
 library(jsonlite)
 library(dplyr)
@@ -74,7 +74,7 @@ registerDoParallel(cl)
 
 #### Read the Data
 
-```{r}
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 rs <- read_csv("https://raw.githubusercontent.com/aaliyahmjh/DATA607Project/refs/heads/main/rolling_stone.csv", show_col_types = FALSE)
 ```
 
@@ -82,7 +82,7 @@ rs <- read_csv("https://raw.githubusercontent.com/aaliyahmjh/DATA607Project/refs
 
 This data set is untidy because it has a wide structure with duplicate columns such as name and 3 separate rank columns that can be combined and referenced with a "year" column:
 
-```{r}
+```{r echo=TRUE}
 # Tidy the data
 tidy_rs <- rs %>%
   pivot_longer(
@@ -101,7 +101,7 @@ Now each observation represents a year making the data set tidy.
 
 Next we want to filter the data set to only focus on albums ranked in 2020:
 
-```{r}
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 filter_rs <- tidy_rs %>%
   select(clean_name, album, genre, year, rank)
 
@@ -115,7 +115,7 @@ head(filter_rs)
 
 Now we want to grab only the top 10 artists:
 
-```{r}
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 # Select the top 10 artists & albums by rank 
 top10_by_rank <- filter_rs %>%
   arrange(rank) %>%      # sort ascending
@@ -145,7 +145,7 @@ Now that we have our artists to focus on, next is grabbing the songs for each ar
 
 Each Wikipedia page is set up a bit differently, so we're going to get the songs for each artist individually:
 
-```{r}
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 # Get the html
 html_marvin_gaye <- read_html("https://en.wikipedia.org/wiki/Marvin_Gaye_discography#Singles")
 html_beach_boys <- read_html("https://en.wikipedia.org/wiki/The_Beach_Boys_discography#Singles")
@@ -161,7 +161,7 @@ html_lauryn_hill <- read_html("https://en.wikipedia.org/wiki/Lauryn_Hill_discogr
 
 Next we select the tables we want from the HTML. Note, some artist's pages have multiple tables for songs where each table represents a decade. For these artists, we'll need to gather multiple tables:
 
-```{r}
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 # Scrape the songs table from wikipedia
 get_songs_df <- function(html, css_selector) {
   songs <- html |> html_elements(css_selector) |>
@@ -199,7 +199,7 @@ Next we'll go through each unique dataframe (note, each dataframe is slightly di
 
 ##### Marvin Gaye
 
-```{r}
+```{r echo=TRUE}
 # Marvin Gaye
 ## 1960s ##
 # Keep the important variables
@@ -268,7 +268,7 @@ head(marvin_gaye_df3_clean)
 
 ##### The Beach Boys
 
-```{r}
+```{r echo=TRUE}
 # The Beach Boys
 
 ## 1960s ##
@@ -355,7 +355,7 @@ head(the_beach_boys_df4_clean)
 
 ##### Joni Mitchell
 
-```{r}
+```{r echo=TRUE}
 # Joni Mitchell
 joni_mitchell_df <- joni_mitchell_df |>
   row_to_names(row_number = 1)
@@ -379,7 +379,7 @@ head(joni_mitchell_df_clean)
 
 ##### Stevie Wonder
 
-```{r}
+```{r echo=TRUE}
 # Stevie Wonder
 stevie_wonder_df <- stevie_wonder_df |>
   row_to_names(row_number = 1)
@@ -452,7 +452,7 @@ head(stevie_wonder_df4_clean)
 
 ##### The Beatles
 
-```{r}
+```{r echo=TRUE}
 # The Beatles
 the_beatles_df <- the_beatles_df |>
   row_to_names(row_number = 1)
@@ -473,7 +473,7 @@ head(the_beatles_df_clean)
 
 ##### Nirvana
 
-```{r}
+```{r echo=TRUE}
 # Nirvana
 nirvana_df <- nirvana_df |>
   row_to_names(row_number = 1)
@@ -491,7 +491,7 @@ head(nirvana_df_clean)
 
 ##### Fleetwood Mac
 
-```{r}
+```{r echo=TRUE}
 # Fleetwood Mac
 fleetwood_mac_df <- fleetwood_mac_df |>
   row_to_names(row_number = 1)
@@ -509,7 +509,7 @@ head(fleetwood_mac_df_clean)
 
 ##### Prince
 
-```{r}
+```{r echo=TRUE}
 # Prince
 
 ## 70s & 80s ##
@@ -575,7 +575,7 @@ head(prince_df4_clean)
 
 ##### Bob Dylan
 
-```{r}
+```{r echo=TRUE}
 # Bob Dylan
 bob_dylan_df <- bob_dylan_df |>
   row_to_names(row_number = 1)
@@ -596,7 +596,7 @@ head(bob_dylan_df_clean)
 
 ##### Lauryn Hill
 
-```{r}
+```{r echo=TRUE}
 # Lauryn Hill
 lauryn_hill_df <- lauryn_hill_df |>
   row_to_names(row_number = 1)
@@ -618,7 +618,7 @@ We now have tidy song dataframe for each artist.
 
 Now let's combine all the dataframes into one called `artist_dfs`:
 
-```{r}
+```{r echo=TRUE}
 artist_dfs <- c(
   # Marvin Gaye
   "marvin_gaye_df_clean",
@@ -669,7 +669,7 @@ artist_dfs <- c(
 
 Since some of the values for song title variable are messy, let's clean the data frame and write the data frame to a CSV:
 
-```{r}
+```{r echo=TRUE}
 # This function:
 # - extracts artist name from object name (everything before "_df")
 # - cleans song titles
@@ -751,7 +751,7 @@ all_artists_songs <- all_artists_songs |>
 
 ```
 
-```{r}
+```{r eval=FALSE, warning=FALSE, include=FALSE}
 #for (df_name in artist_dfs) {
  # clean_and_save_songs_df(df_name)
 #}
@@ -851,7 +851,7 @@ head(messy_all_artists)
 
 Next to gather song lyrics, we'll use the Genuis API. Unfortunately, the Genius API can't provide the lyrics directly, but it can provide the URL that contains the lyrics to a song. We'll then have to web scrape again to create a lyrics dataframe.
 
-```{r}
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 # Genius API token (token needs to be keyed before submitting the project). I'll leave it as is for now.
 genius_token <- "9em6wi6o9dAzPw5U_6qjYCOqRa2nQKZ26DjIe4anzXgCsJJT0hP5ZZsZK3UdsrzH"
 
@@ -919,7 +919,7 @@ search_song_final <- function(song_title, artist_name) {
       artist <- tolower(as.character(artist_raw))
 
       # Check if the artist name is valid and matches the search query
-      if (!is.na(artist) && nzchar(artist) && str_detect(artist, tolower(artist_name))) {
+      if (!is.na(artist) && nzchar(artist) && str_detect(artist, fixed(tolower(artist_name)))) {
           # If the artist matched, get the URL from its column
           song_url_found <- hits[[url_col]][[i]]
           if (!is.na(song_url_found) && nzchar(song_url_found)) {
@@ -942,7 +942,7 @@ print(song_url)
 
 Now we need to create functions that will get all the words for a song, `get_words_df`, and get the song emotions, `get_song_sentiments`:
 
-```{r}
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 # Returns a dataframe where each observation is a word and the corresponding in a song
 get_words_df <- function(artist_name, song_title) {
   song_url <- search_song_final(song_title, artist_name)
@@ -1059,7 +1059,7 @@ Now we're ready to perform our analysis.
 
 Let's start by finding the top emotions overall, over the years, and for each artist:
 
-```{r}
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 # Grab 5 songs from each of the top 10 artists
 get_top5_valid_sentiments <- function(artist_name, song_titles, max_songs = 5) {
   results <- list()
@@ -1170,7 +1170,7 @@ Let's graph these charts and analyze:
 
 Word frequency:
 
-```{r}
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 word_freq_decade_years <- word_freq_decade_years |>
   left_join(bing, by = "word", relationship = "many-to-many")
 
@@ -1186,7 +1186,7 @@ We can see here that love is the most frequent word, and is the only word that h
 
 Sentiments for each decade:
 
-```{r}
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 valid_sentiments_by_decade |>
   ggplot(aes(x = year, y = n, fill = top_emotion)) +
   geom_col() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
@@ -1198,7 +1198,7 @@ Over time, the emotion represented for each decade is joy excluding 2010. That p
 
 Top Emotions in Songs by Top 10 Artists:
 
-```{r}
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 ggplot(valid_sentiments, aes(x = fct_infreq(top_emotion), fill = top_emotion)) +
   geom_bar() +
   coord_flip() +
@@ -1221,7 +1221,7 @@ Overall, this distribution highlights the emotional leaning of popular music fro
 
 Top Emotions by Artist:
 
-```{r}
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 valid_sentiments %>%
   group_by(artist, top_emotion) %>%
   summarise(n = n(), .groups = "drop") %>%
@@ -1245,13 +1245,118 @@ The chart highlights how different artists tend to gravitate toward different em
 
 Emotional Variety by Artist:
 
-```{r}
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 #Artists with the most emotionally varied songs
 valid_sentiments %>%
   group_by(artist) %>%
   summarise(num_unique_emotions = n_distinct(top_emotion)) %>%
   arrange(desc(num_unique_emotions))
 ```
+
+## This part uses Billbord and geniusr libraries to get more songs. 
+
+```{r}
+
+library(billboard)
+library(geniusr)
+#library(genius)
+
+#Genius API
+Sys.setenv(GENIUS_API_TOKEN = "9em6wi6o9dAzPw5U_6qjYCOqRa2nQKZ26DjIe4anzXgCsJJT0hP5ZZsZK3UdsrzH")
+Sys.getenv("GENIUS_API_TOKEN")
+?geniusr
+
+#Creating Billboard dataframe (Includes top100 songs for each year in range of 1960 - 2016)
+if (require("dplyr")) {
+data(wiki_hot_100s)
+wiki_hot_100s |>
+  glimpse()
+}
+
+#doParallel
+num_cores <- parallel::detectCores() - 1  # leave 1 core for safety
+cl <- makeCluster(num_cores)
+registerDoParallel(cl)
+
+#This is a random sample for random 20 songs from each year
+samples_billboard_1960_2016 <- wiki_hot_100s |>
+  mutate(year = as.numeric(year))|>
+  group_by(year) |>
+  sample_n(size = 20, replace = FALSE) |> #size can be decreased to speed up the process
+  ungroup()
+
+
+#helper function to get sentiments
+get_song_emotions <- function(artist, title, n = 1) {
+  words <- get_words_df(artist, title)
+  sentiments <- get_song_sentiments(words, artist, title, n)
+  return(sentiments)
+}
+
+#this removes duplicate rows
+song_jobs <- samples_billboard_1960_2016 |>
+  distinct(artist, title, year, .keep_all = TRUE)
+
+#here we are getting sentiments for each song, and storing it in new df. 
+#<<<______this part can take from 8 to 15 mins to complete.______>>>>>>>
+songs_with_emotions <- foreach(i = 1:nrow(song_jobs), 
+                               .combine = bind_rows, 
+                               .packages = c("dplyr", "tibble", "purrr", "stringr", 
+                                             "tidytext", "rvest", "httr", "jsonlite")) %dopar% {
+  tryCatch({
+    artist <- song_jobs$artist[i]
+    title  <- song_jobs$title[i]
+    year   <- song_jobs$year[i]
+    
+    sent_df <- get_song_emotions(artist, title, n = 1)
+    sent_df$year <- year
+    sent_df
+  }, error = function(e) {
+    message("Failed for ", song_jobs$title[i], " by ", song_jobs$artist[i])
+    tibble(artist = song_jobs$artist[i], song = song_jobs$title[i], top_emotion = NA, year = song_jobs$year[i])
+  })
+}
+
+
+stopCluster(cl)
+registerDoSEQ() 
+
+#charts for each decade
+songs_with_emotions |>
+  filter(!is.na(top_emotion)) |>
+  mutate(year = as.numeric(year)) |>
+  group_by(decade = floor(year / 10) * 10, top_emotion) |>
+  summarise(n = n(), .groups = "drop") |>
+  ggplot(aes(x = factor(decade), y = n, fill = top_emotion)) +
+  geom_col(position = "dodge") +
+  labs(title = "Emotion Trends in Billboard Lyrics by Decade", x = "Decade", y = "Count")
+
+```
+
+```{r}
+songs_with_emotions_polarity <- songs_with_emotions |>
+  filter(!is.na(top_emotion)) |>
+  mutate(polarity = case_when(
+    top_emotion %in% c("joy", "trust", "anticipation") ~ "Positive",
+    top_emotion %in% c("sadness", "anger", "fear", "disgust") ~ "Negative",
+    TRUE ~ "Neutral"
+  ))
+
+songs_with_emotions_polarity |>
+  count(year, polarity) |>
+  group_by(year) |>
+  mutate(prop = n / sum(n)) |>
+  ggplot(aes(x = as.numeric(year), y = prop, color = polarity)) +
+  geom_line(size = 1.2) +
+  labs(title = "Positive vs. Negative Emotional Trends Over Time",
+       x = "Year", y = "Proportion of Songs") +
+  theme_minimal(base_size = 14)
+
+```
+```{r}
+
+```
+
 
 ## Conclusions
 
