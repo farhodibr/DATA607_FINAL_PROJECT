@@ -76,6 +76,7 @@ registerDoParallel(cl)
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 rs <- read_csv("https://raw.githubusercontent.com/aaliyahmjh/DATA607Project/refs/heads/main/rolling_stone.csv", show_col_types = FALSE)
+head(rs)
 ```
 
 #### Tidy the Data
@@ -92,10 +93,10 @@ tidy_rs <- rs %>%
     names_pattern = "rank_(\\d+)" 
   )
 
-tidy_rs
+head(tidy_rs)
 ```
 
-Now each observation represents a year making the data set tidy.
+Now each observation represents an album/year combination making the data set tidy.
 
 #### Filter the Data
 
@@ -137,6 +138,8 @@ The top artists are:
 -   Bob Dylan
 -   Lauryn Hill
 
+Note: none of the top artists from Rolling Stone are recent artists, so when we look at the songs and when they were released, we'll have more data from 1960s - 1990s.
+
 ## Find the Songs for Each Artist
 
 Now that we have our artists to focus on, next is grabbing the songs for each artist. We'll be grabbing this data from Wikipedia for us to get web scraping experience.
@@ -159,7 +162,7 @@ html_bob_dylan <- read_html("https://en.wikipedia.org/wiki/Bob_Dylan_discography
 html_lauryn_hill <- read_html("https://en.wikipedia.org/wiki/Lauryn_Hill_discography#Singles")
 ```
 
-Next we select the tables we want from the HTML. Note, some artist's pages have multiple tables for songs where each table represents a decade. For these artists, we'll need to gather multiple tables:
+Next we select the tables we want from the HTML. Note, some artist's pages have multiple tables for songs where each table represents a decade. For these artists, we'll need to gather multiple tables in order to gather all the songs:
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 # Scrape the songs table from wikipedia
@@ -612,7 +615,7 @@ lauryn_hill_df_clean <- lauryn_hill_df_clean |>
 head(lauryn_hill_df_clean)
 ```
 
-We now have tidy song dataframe for each artist.
+We now have a tidy song dataframe for each artist.
 
 ## Creating a Single Dataframe for Artist/Song/Album/Year
 
@@ -667,7 +670,7 @@ artist_dfs <- c(
 
 #### Clean the Data
 
-Since some of the values for song title variable are messy, let's clean the data frame and write the data frame to a CSV:
+Since some of the values from the song title variable are messy, let's clean the dataframe and write the dataframe to a CSV:
 
 ```{r echo=TRUE}
 # This function:
@@ -749,15 +752,15 @@ all_artists_songs |>
 all_artists_songs <- all_artists_songs |>
   distinct(artist, title, .keep_all = TRUE)
 
+head(all_artists_songs)
 ```
-
-```{r eval=FALSE, warning=FALSE, include=FALSE}
-#for (df_name in artist_dfs) {
- # clean_and_save_songs_df(df_name)
-#}
-```
+We now have a clean, tidy dataframe `all_artists_songs` which contains artist, song title, album and year data. Next we'll add on the emotion for each song.
 
 ## Creating messy SQL database from all_artists_songs and returning it as tidy df
+
+This section is for MySQL (we wanted to include MySQL for this project). We decided to upload a messy dataframe, grab it from MySQL, then tidy it back up again:
+
+Connecting to MySQL:
 
 ```{r eval=FALSE, include=FALSE}
 # get values securely from env
@@ -782,6 +785,8 @@ con <- dbConnect(
 )
 ```
 
+Uploading messy table to MySQL:
+
 ```{r eval=FALSE, include=FALSE}
 messy_all_artists <- all_artists_songs |>
   mutate(
@@ -803,6 +808,8 @@ messy_all_artists <- all_artists_songs |>
 dbWriteTable(con, "messy_songs", messy_all_artists, overwrite = TRUE, row.names = FALSE)
 ```
 
+Grabbing the dataframe and tidying it again:
+
 ```{r eval=FALSE, include=FALSE}
 messy_from_mysql <- dbReadTable(con, "messy_songs")
 
@@ -823,28 +830,6 @@ tidy_from_mysql <- messy_from_mysql |>
 write.csv(tidy_from_mysql, "tidy_from_mysql.csv")
 
 dbDisconnect(con)
-```
-
-```{r eval=FALSE, include=FALSE}
-# make a copy of clean df
-messy_all_artists <- all_artists_songs |>
-  mutate(
-    id = row_number(),  
-    song_1 = title,
-    song_2 = ifelse(row_number() %% 2 == 0, paste(title, "Remix"), NA),  # some second titles
-    notes = case_when(
-      grepl("Remix", title) ~ "CD version",
-      grepl("Love", title, ignore.case = TRUE) ~ "— denotes b-side",
-      TRUE ~ ""
-    ),
-    album_name = album,
-    release_year = year
-  ) |>
-  select(id, artist_name = artist, song_1, song_2, album_name, release_year, notes)
-
-
-# preview messy version
-head(messy_all_artists)
 ```
 
 ## Get the Song Lyrics Using Genius.com API
@@ -1052,12 +1037,7 @@ head(words_test, 15)
 scraped_lyrics_test <- get_song_sentiments(words_test, artist_band, song_name, 1)
 head(scraped_lyrics_test, 15)
 ```
-
-## Analysis
-
-Now we're ready to perform our analysis.
-
-Let's start by finding the top emotions overall, over the years, and for each artist:
+Now let's apply those functions to our tidy `artist_song_list` dataframe to create a top emotion variable:
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 # Grab 5 songs from each of the top 10 artists
@@ -1113,9 +1093,19 @@ valid_sentiments <- foreach(i = 1:nrow(artist_song_list),
   result <- get_top5_valid_sentiments(artist, songs)
   result$artist <- artist
   result
-}
-print(valid_sentiments)
+                            }
 
+# Final tidy dataframe
+head(valid_sentiments)
+```
+
+We now have a tidy data frame, `valid_sentiments` where each observation represents a song, artist, and the top emotion for that song.
+
+## Analysis
+
+Now we're ready to perform our analysis. Let's look at word frequency for the top songs and analyze the emotions. Note, when looking at decades, we only look at a subset of data, and pick only one year per decade since the code runs so slowly.
+
+```{r}
 # Let's take a subset of the songs and just look at the years 1970, 1980, 1990, etc.
 song_list_by_year_filtered <- song_list_by_year %>%
   filter(year %in% c("1970", "1980", "1990", "2000", "2010"))
@@ -1158,7 +1148,7 @@ word_freq_decade_years <- foreach(i = 1:nrow(song_list_by_year_filtered), .combi
 
 word_freq_decade_years <- word_freq_decade_years |>
   anti_join(stop_words, by=c("word"="word")) %>% # don't include stop words
-  filter(!(word %in% c("it’s", "da", "dah", "duh", "ba", "shoo", "yeah", "ooh", "oh", "nuh", "i’m", "gonna", "bop", "you’re", "contributors", "lyrics", "la", "wanna"))) %>%
+  filter(!(word %in% c("it’s", "da", "dah", "duh", "ba", "shoo", "yeah", "ooh", "oh", "nuh", "i’m", "gonna", "bop", "you’re", "contributors", "lyrics", "la", "wanna"))) %>% # don't include these words in the analysis
   count(word, sort = TRUE) %>%
   slice_head(n = 10)
 word_freq_decade_years
@@ -1171,6 +1161,7 @@ Let's graph these charts and analyze:
 Word frequency:
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Word Frequency
 word_freq_decade_years <- word_freq_decade_years |>
   left_join(bing, by = "word", relationship = "many-to-many")
 
@@ -1182,11 +1173,12 @@ word_freq_decade_years |>
          y = "Count")
 ```
 
-We can see here that love is the most frequent word, and is the only word that has a positve or negative emotion attached to it. Possibly the most interesting takeaway from this graph is that grandma is in top words.
+We can see here that love is the most frequent word, and is the only word that has a positive or negative emotion attached to it. Possibly the most interesting takeaway from this graph is that grandma is in top words.
 
 Sentiments for each decade:
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Top Emotion in Songs Per Year
 valid_sentiments_by_decade |>
   ggplot(aes(x = year, y = n, fill = top_emotion)) +
   geom_col() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
@@ -1199,6 +1191,7 @@ Over time, the emotion represented for each decade is joy excluding 2010. That p
 Top Emotions in Songs by Top 10 Artists:
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Top Emotions in Songs by Top 10 Artists
 ggplot(valid_sentiments, aes(x = fct_infreq(top_emotion), fill = top_emotion)) +
   geom_bar() +
   coord_flip() +
@@ -1215,7 +1208,7 @@ This bar chart summarizes the most frequent dominant emotion detected in songs b
 
 -   Emotions like trust, anger, and fear are present but much less frequent.
 
-1.  Sadness and surprise appear rarely as the primary emotion, indicating they are less likely to be the dominant tone in top songs.
+-   Sadness and surprise appear rarely as the primary emotion, indicating they are less likely to be the dominant tone in top songs.
 
 Overall, this distribution highlights the emotional leaning of popular music from legendary artists toward positive or forward-looking sentiments.
 
@@ -1253,111 +1246,6 @@ valid_sentiments %>%
   arrange(desc(num_unique_emotions))
 ```
 
-## This part uses Billbord and geniusr libraries to get more songs. 
-
-```{r}
-
-library(billboard)
-library(geniusr)
-#library(genius)
-
-#Genius API
-Sys.setenv(GENIUS_API_TOKEN = "9em6wi6o9dAzPw5U_6qjYCOqRa2nQKZ26DjIe4anzXgCsJJT0hP5ZZsZK3UdsrzH")
-Sys.getenv("GENIUS_API_TOKEN")
-?geniusr
-
-#Creating Billboard dataframe (Includes top100 songs for each year in range of 1960 - 2016)
-if (require("dplyr")) {
-data(wiki_hot_100s)
-wiki_hot_100s |>
-  glimpse()
-}
-
-#doParallel
-num_cores <- parallel::detectCores() - 1  # leave 1 core for safety
-cl <- makeCluster(num_cores)
-registerDoParallel(cl)
-
-#This is a random sample for random 20 songs from each year
-samples_billboard_1960_2016 <- wiki_hot_100s |>
-  mutate(year = as.numeric(year))|>
-  group_by(year) |>
-  sample_n(size = 20, replace = FALSE) |> #size can be decreased to speed up the process
-  ungroup()
-
-
-#helper function to get sentiments
-get_song_emotions <- function(artist, title, n = 1) {
-  words <- get_words_df(artist, title)
-  sentiments <- get_song_sentiments(words, artist, title, n)
-  return(sentiments)
-}
-
-#this removes duplicate rows
-song_jobs <- samples_billboard_1960_2016 |>
-  distinct(artist, title, year, .keep_all = TRUE)
-
-#here we are getting sentiments for each song, and storing it in new df. 
-#<<<______this part can take from 8 to 15 mins to complete.______>>>>>>>
-songs_with_emotions <- foreach(i = 1:nrow(song_jobs), 
-                               .combine = bind_rows, 
-                               .packages = c("dplyr", "tibble", "purrr", "stringr", 
-                                             "tidytext", "rvest", "httr", "jsonlite")) %dopar% {
-  tryCatch({
-    artist <- song_jobs$artist[i]
-    title  <- song_jobs$title[i]
-    year   <- song_jobs$year[i]
-    
-    sent_df <- get_song_emotions(artist, title, n = 1)
-    sent_df$year <- year
-    sent_df
-  }, error = function(e) {
-    message("Failed for ", song_jobs$title[i], " by ", song_jobs$artist[i])
-    tibble(artist = song_jobs$artist[i], song = song_jobs$title[i], top_emotion = NA, year = song_jobs$year[i])
-  })
-}
-
-
-stopCluster(cl)
-registerDoSEQ() 
-
-#charts for each decade
-songs_with_emotions |>
-  filter(!is.na(top_emotion)) |>
-  mutate(year = as.numeric(year)) |>
-  group_by(decade = floor(year / 10) * 10, top_emotion) |>
-  summarise(n = n(), .groups = "drop") |>
-  ggplot(aes(x = factor(decade), y = n, fill = top_emotion)) +
-  geom_col(position = "dodge") +
-  labs(title = "Emotion Trends in Billboard Lyrics by Decade", x = "Decade", y = "Count")
-
-```
-
-```{r}
-songs_with_emotions_polarity <- songs_with_emotions |>
-  filter(!is.na(top_emotion)) |>
-  mutate(polarity = case_when(
-    top_emotion %in% c("joy", "trust", "anticipation") ~ "Positive",
-    top_emotion %in% c("sadness", "anger", "fear", "disgust") ~ "Negative",
-    TRUE ~ "Neutral"
-  ))
-
-songs_with_emotions_polarity |>
-  count(year, polarity) |>
-  group_by(year) |>
-  mutate(prop = n / sum(n)) |>
-  ggplot(aes(x = as.numeric(year), y = prop, color = polarity)) +
-  geom_line(size = 1.2) +
-  labs(title = "Positive vs. Negative Emotional Trends Over Time",
-       x = "Year", y = "Proportion of Songs") +
-  theme_minimal(base_size = 14)
-
-```
-```{r}
-
-```
-
-
 ## Conclusions
 
 Our analysis showed us that:
@@ -1378,3 +1266,280 @@ Potential Future Analysis:
 -   Analyze full discographies per artist
 -   Compare results using multiple sentiment dictionaries
 -   Explore how emotions differ by genre or rank position
+
+## Extra Analysis
+
+### Billbord and geniusr libraries to get more songs
+
+Focusing on just the Rolling Stone's top artists did not provide us artists and songs from recent decades, so to expand our data, we used the `billboard` library which provides us the Billboard Top 100 songs for each year from 1960 - 2016.
+
+#### Get the Data
+
+Let's load `billboard`'s `wiki_hot_100s` dataframe which contains the Billboard Top 100 songs:
+
+```{r}
+library(billboard)
+library(geniusr)
+
+#Genius API
+Sys.setenv(GENIUS_API_TOKEN = "9em6wi6o9dAzPw5U_6qjYCOqRa2nQKZ26DjIe4anzXgCsJJT0hP5ZZsZK3UdsrzH")
+Sys.getenv("GENIUS_API_TOKEN")
+?geniusr
+
+#Creating Billboard dataframe (Includes top100 songs for each year in range of 1960 - 2016)
+if (require("dplyr")) {
+  data(wiki_hot_100s)
+  wiki_hot_100s |>
+    glimpse()
+}
+
+# This is a random sample for random 20 songs from each year
+# Only look at 20 due to slow process time to obtain song lyrics
+set.seed(146)
+sample_billboard_1960_2016 <- wiki_hot_100s |>
+  mutate(year = as.numeric(year))|>
+  group_by(year) |>
+  sample_n(size = 20, replace = FALSE) |> #size can be decreased to speed up the process
+  ungroup()
+
+# Grab the top 20 songs from each year
+# Only look at 20 due to slow process time to obtain song lyrics
+top_20_billboard_1960_2016 <- wiki_hot_100s |>
+  mutate(year = as.numeric(year))|>
+  group_by(year) |>
+  slice_head(n = 20) |> #size can be decreased to speed up the process
+  ungroup()
+
+#this removes duplicate rows
+song_jobs <- top_20_billboard_1960_2016 |>
+  distinct(artist, title, year, .keep_all = TRUE)
+
+sample_song_jobs <- sample_billboard_1960_2016 |>
+  distinct(artist, title, year, .keep_all = TRUE)
+
+head(song_jobs)
+head(sample_song_jobs)
+```
+
+These dataframes, one for the top 20, and the other for a group of random 20 songs, are tidy since each observation represents a single song on the Billboard Top 100. Each cell contains a single value as well.
+
+Now let's add on the top emotion for each song:
+
+```{r}
+#doParallel
+num_cores <- parallel::detectCores() - 1  # leave 1 core for safety
+cl <- makeCluster(num_cores)
+registerDoParallel(cl)
+
+
+#helper function to get sentiments
+get_song_emotions <- function(artist, title, n = 1) {
+  words <- get_words_df(artist, title)
+  sentiments <- get_song_sentiments(words, artist, title, n)
+  return(sentiments)
+}
+
+#here we are getting sentiments for each song, and storing it in new df. 
+#<<<______this part can take from 8 to 15 mins to complete.______>>>>>>>
+songs_with_emotions <- foreach(i = 1:nrow(song_jobs), 
+                               .combine = bind_rows, 
+                               .packages = c("dplyr", "tibble", "purrr", "stringr", 
+                                             "tidytext", "rvest", "httr", "jsonlite")) %dopar% {
+  tryCatch({
+    artist <- song_jobs$artist[i]
+    title  <- song_jobs$title[i]
+    year   <- song_jobs$year[i]
+    
+    sent_df <- get_song_emotions(artist, title, n = 1)
+    sent_df$year <- year
+    sent_df
+  }, error = function(e) {
+    message("Failed for ", song_jobs$title[i], " by ", song_jobs$artist[i])
+    tibble(artist = song_jobs$artist[i], song = song_jobs$title[i], top_emotion = NA, year = song_jobs$year[i])
+  })
+                                             }
+
+sample_songs_with_emotions <- foreach(i = 1:nrow(sample_song_jobs), 
+                               .combine = bind_rows, 
+                               .packages = c("dplyr", "tibble", "purrr", "stringr", 
+                                             "tidytext", "rvest", "httr", "jsonlite")) %dopar% {
+  tryCatch({
+    artist <- sample_song_jobs$artist[i]
+    title  <- sample_song_jobs$title[i]
+    year   <- sample_song_jobs$year[i]
+    
+    sent_df <- get_song_emotions(artist, title, n = 1)
+    sent_df$year <- year
+    sent_df
+  }, error = function(e) {
+    message("Failed for ", sample_song_jobs$title[i], " by ", sample_song_jobs$artist[i])
+    tibble(artist = sample_song_jobs$artist[i], song = sample_song_jobs$title[i], top_emotion = NA, year = sample_song_jobs$year[i])
+  })
+}
+
+
+stopCluster(cl)
+registerDoSEQ() 
+
+# Final tidy dataframe
+
+songs_with_emotions |>
+  filter(is.na(top_emotion))
+
+sample_songs_with_emotions |>
+  filter(is.na(top_emotion))
+head(songs_with_emotions)
+head(sample_songs_with_emotions)
+```
+
+We now have tidy data frames where each observation represent a song, and it's top emotion.
+
+#### Analysis
+
+Now we can start our analysis. Let's see how the emotions of popular songs have changed through the years by decade:
+
+```{r}
+songs_with_emotions_grouped_by_decade <- songs_with_emotions |>
+  filter(!is.na(top_emotion)) |>
+  mutate(year = as.numeric(year)) |>
+  group_by(decade = floor(year / 10) * 10, top_emotion)|>
+  summarise(n = n(), .groups = "drop")
+
+#charts for each decade
+songs_with_emotions_grouped_by_decade |>
+  ggplot(aes(x = factor(decade), y = n, fill = top_emotion)) +
+  geom_col(position = "dodge") +
+  labs(title = "Emotion Trends in Top 20 Billboard Song Lyrics by Decade", x = "Decade", y = "Count")
+
+# Sampled Data
+sample_songs_with_emotions_grouped_by_decade <- songs_with_emotions_sample |>
+  filter(!is.na(top_emotion)) |>
+  mutate(year = as.numeric(year)) |>
+  group_by(decade = floor(year / 10) * 10, top_emotion)|>
+  summarise(n = n(), .groups = "drop")
+
+#charts for each decade
+sample_songs_with_emotions_grouped_by_decade |>
+  ggplot(aes(x = factor(decade), y = n, fill = top_emotion)) +
+  geom_col(position = "dodge") +
+  labs(title = "Emotion Trends in Sampled Billboard Song Lyrics by Decade", x = "Decade", y = "Count")
+```
+
+Top 20 Songs:
+
+Looking at the count bar graph, Joy is still by far the most common top emotion, appearing in nearly 25 songs. Yet, the count gets much small after the 90s. This makes sense because the data we have access to only goes up to 2016, so the 2010 would have less data. For the 2000s decade, it's possible for some reason we could not find the lyrics to the songs, or a top emotion could not be specified.
+
+Sampled:
+
+Joy is still the top emotion for random sampled data. It looks like sampled data has the same issue.
+
+Let's check where the missing emotions are:
+
+```{r}
+songs_with_emotions |>
+  filter(is.na(top_emotion)) |>
+  group_by(decade = floor(year / 10) * 10) |>
+  summarise(total = n())
+
+sample_songs_with_emotions |>
+  filter(is.na(top_emotion)) |>
+  group_by(decade = floor(year / 10) * 10) |>
+  summarise(total = n())
+```
+
+As you can see, the decade with the most missing emotions is the 2000s decade. If we were doing further analysis with more time, we could pinpoint exactly why this data is missing. The sampled data has a bit less missing values in the 2000s.
+
+Let's make another percentage graph to look at the proportions:
+
+```{r}
+# Emotion Trends in Billboard Lyrics by Decade
+# Focus on percentage
+songs_with_emotions_grouped_by_decade_pct <- songs_with_emotions_grouped_by_decade |>
+  group_by(decade) |>
+  mutate(percent = n / sum(n)) |>
+  ungroup()
+
+songs_with_emotions_grouped_by_decade_pct |>
+  ggplot(aes(x = factor(decade), y = percent, fill = top_emotion)) +
+  geom_col(position = "dodge") +
+  labs(title = "Emotion Trends in Top 20 Billboard Song Lyrics by Decade", x = "Decade", y = "Percentage")
+
+# Sampled Data
+sample_songs_with_emotions_grouped_by_decade_pct <- sample_songs_with_emotions_grouped_by_decade |>
+  group_by(decade) |>
+  mutate(percent = n / sum(n)) |>
+  ungroup()
+
+sample_songs_with_emotions_grouped_by_decade_pct |>
+  ggplot(aes(x = factor(decade), y = percent, fill = top_emotion)) +
+  geom_col(position = "dodge") +
+  labs(title = "Emotion Trends in Sampled Billboard Song Lyrics by Decade", x = "Decade", y = "Percentage")
+```
+
+Top 20 Songs:
+
+This graph looks a lot more stabilized. This graph still shows Joy as the top emotion for each decade, yet this percentage decreases in the 2000s. We can also see that Anger percentage increases in the 2000s, then drops in the 2010s. This makes one wonder if world events occurring the 2000s changed overall population sentiment, which is shown in the art/music that was released during that time. Joy showed the highest percentage in 90s. Additionally, Trust decreases in the 90s and 2000s, then increases again in the 2010 decade.
+
+Sampled:
+
+The sampled data shows pretty similar results. Anticpation decreases over the decades, and fear has a lower percentage in the 2010s. Trust remains a bit more constant over the decades compared to the top 20 songs.
+
+Now let's look at overall Positive vs Negative emotions, and how they've changed over time:
+
+```{r}
+# Positive vs. Negative Emotional Trends Over Time
+songs_with_emotions_polarity <- songs_with_emotions |>
+  filter(!is.na(top_emotion)) |>
+  mutate(polarity = case_when(
+    top_emotion %in% c("joy", "trust", "anticipation") ~ "Positive",
+    top_emotion %in% c("sadness", "anger", "fear", "disgust") ~ "Negative",
+    TRUE ~ "Neutral"
+  ))
+
+songs_with_emotions_polarity |>
+  count(year, polarity) |>
+  group_by(year) |>
+  mutate(prop = n / sum(n)) |>
+  ggplot(aes(x = as.numeric(year), y = prop, color = polarity)) +
+  geom_line(size = 1.2) +
+  labs(title = "Positive vs. Negative Emotional Trends Over Time (Top 20 Songs per Year)",
+       x = "Year", y = "Proportion of Songs") +
+  theme_minimal(base_size = 14)
+
+# Sampled Data
+sample_songs_with_emotions_polarity <- sample_songs_with_emotions |>
+  filter(!is.na(top_emotion)) |>
+  mutate(polarity = case_when(
+    top_emotion %in% c("joy", "trust", "anticipation") ~ "Positive",
+    top_emotion %in% c("sadness", "anger", "fear", "disgust") ~ "Negative",
+    TRUE ~ "Neutral"
+  ))
+
+sample_songs_with_emotions_polarity |>
+  count(year, polarity) |>
+  group_by(year) |>
+  mutate(prop = n / sum(n)) |>
+  ggplot(aes(x = as.numeric(year), y = prop, color = polarity)) +
+  geom_line(size = 1.2) +
+  labs(title = "Positive vs. Negative Emotional Trends Over Time (Sampled Data)",
+       x = "Year", y = "Proportion of Songs") +
+  theme_minimal(base_size = 14)
+
+```
+
+Top 20 songs:
+
+Overall there's no major trend shown in this graph, but we can see in the 2000s positive emotions decreased, while negative emotions increased surpassing positive. This corresponds with our bar graph data. Also, neutral songs do not appear in the 2010s. 
+
+Sampled:
+
+Overall the sampled data looks very similar to the top 20 songs.
+
+### Extra Analysis Conclusions
+
+This analysis showed us that:
+
+-   Joy is the most frequent emotion overall
+-   Anticipation consistently takes up the 2nd highest percentage of emotions
+-   Joy decreased while Anger increased in the 2000s
+-   The major change in positive vs negative trend was in the 2000s where negative emotions were higher than positive
