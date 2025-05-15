@@ -756,12 +756,6 @@ head(all_artists_songs)
 ```
 We now have a clean, tidy dataframe `all_artists_songs` which contains artist, song title, album and year data. Next we'll add on the emotion for each song.
 
-```{r eval=FALSE, warning=FALSE, include=FALSE}
-#for (df_name in artist_dfs) {
- # clean_and_save_songs_df(df_name)
-#}
-```
-
 ## Creating messy SQL database from all_artists_songs and returning it as tidy df
 
 This section is for MySQL (we wanted to include MySQL for this project). We decided to upload a messy dataframe, grab it from MySQL, then tidy it back up again:
@@ -836,28 +830,6 @@ tidy_from_mysql <- messy_from_mysql |>
 write.csv(tidy_from_mysql, "tidy_from_mysql.csv")
 
 dbDisconnect(con)
-```
-
-```{r eval=FALSE, include=FALSE}
-# make a copy of clean df
-messy_all_artists <- all_artists_songs |>
-  mutate(
-    id = row_number(),  
-    song_1 = title,
-    song_2 = ifelse(row_number() %% 2 == 0, paste(title, "Remix"), NA),  # some second titles
-    notes = case_when(
-      grepl("Remix", title) ~ "CD version",
-      grepl("Love", title, ignore.case = TRUE) ~ "— denotes b-side",
-      TRUE ~ ""
-    ),
-    album_name = album,
-    release_year = year
-  ) |>
-  select(id, artist_name = artist, song_1, song_2, album_name, release_year, notes)
-
-
-# preview messy version
-head(messy_all_artists)
 ```
 
 ## Get the Song Lyrics Using Genius.com API
@@ -1321,14 +1293,14 @@ if (require("dplyr")) {
     glimpse()
 }
 
-#This is a random sample for random 20 songs from each year
+# This is a random sample for random 20 songs from each year
 # Only look at 20 due to slow process time to obtain song lyrics
-# set.seed(146)
-# samples_billboard_1960_2016 <- wiki_hot_100s |>
-#   mutate(year = as.numeric(year))|>
-#   group_by(year) |>
-#   sample_n(size = 20, replace = FALSE) |> #size can be decreased to speed up the process
-#   ungroup()
+set.seed(146)
+sample_billboard_1960_2016 <- wiki_hot_100s |>
+  mutate(year = as.numeric(year))|>
+  group_by(year) |>
+  sample_n(size = 20, replace = FALSE) |> #size can be decreased to speed up the process
+  ungroup()
 
 # Grab the top 20 songs from each year
 # Only look at 20 due to slow process time to obtain song lyrics
@@ -1339,13 +1311,17 @@ top_20_billboard_1960_2016 <- wiki_hot_100s |>
   ungroup()
 
 #this removes duplicate rows
-song_jobs <- samples_billboard_1960_2016 |>
+song_jobs <- top_20_billboard_1960_2016 |>
+  distinct(artist, title, year, .keep_all = TRUE)
+
+sample_song_jobs <- sample_billboard_1960_2016 |>
   distinct(artist, title, year, .keep_all = TRUE)
 
 head(song_jobs)
+head(sample_song_jobs)
 ```
 
-This dataframe is tidy since each observation represents a single song on the Billboard Top 100. Each cell contains a single value as well.
+These dataframes, one for the top 20, and the other for a group of random 20 songs, are tidy since each observation represents a single song on the Billboard Top 100. Each cell contains a single value as well.
 
 Now let's add on the top emotion for each song:
 
@@ -1381,6 +1357,24 @@ songs_with_emotions <- foreach(i = 1:nrow(song_jobs),
     message("Failed for ", song_jobs$title[i], " by ", song_jobs$artist[i])
     tibble(artist = song_jobs$artist[i], song = song_jobs$title[i], top_emotion = NA, year = song_jobs$year[i])
   })
+                                             }
+
+sample_songs_with_emotions <- foreach(i = 1:nrow(sample_song_jobs), 
+                               .combine = bind_rows, 
+                               .packages = c("dplyr", "tibble", "purrr", "stringr", 
+                                             "tidytext", "rvest", "httr", "jsonlite")) %dopar% {
+  tryCatch({
+    artist <- sample_song_jobs$artist[i]
+    title  <- sample_song_jobs$title[i]
+    year   <- sample_song_jobs$year[i]
+    
+    sent_df <- get_song_emotions(artist, title, n = 1)
+    sent_df$year <- year
+    sent_df
+  }, error = function(e) {
+    message("Failed for ", sample_song_jobs$title[i], " by ", sample_song_jobs$artist[i])
+    tibble(artist = sample_song_jobs$artist[i], song = sample_song_jobs$title[i], top_emotion = NA, year = sample_song_jobs$year[i])
+  })
 }
 
 
@@ -1391,10 +1385,14 @@ registerDoSEQ()
 
 songs_with_emotions |>
   filter(is.na(top_emotion))
+
+sample_songs_with_emotions |>
+  filter(is.na(top_emotion))
 head(songs_with_emotions)
+head(sample_songs_with_emotions)
 ```
 
-We now have a tidy data frame where each observation represent a song, and it's top emotion.
+We now have tidy data frames where each observation represent a song, and it's top emotion.
 
 #### Analysis
 
@@ -1411,19 +1409,45 @@ songs_with_emotions_grouped_by_decade <- songs_with_emotions |>
 songs_with_emotions_grouped_by_decade |>
   ggplot(aes(x = factor(decade), y = n, fill = top_emotion)) +
   geom_col(position = "dodge") +
-  labs(title = "Emotion Trends in Billboard Lyrics by Decade", x = "Decade", y = "Count")
+  labs(title = "Emotion Trends in Top 20 Billboard Song Lyrics by Decade", x = "Decade", y = "Count")
+
+# Sampled Data
+sample_songs_with_emotions_grouped_by_decade <- songs_with_emotions_sample |>
+  filter(!is.na(top_emotion)) |>
+  mutate(year = as.numeric(year)) |>
+  group_by(decade = floor(year / 10) * 10, top_emotion)|>
+  summarise(n = n(), .groups = "drop")
+
+#charts for each decade
+sample_songs_with_emotions_grouped_by_decade |>
+  ggplot(aes(x = factor(decade), y = n, fill = top_emotion)) +
+  geom_col(position = "dodge") +
+  labs(title = "Emotion Trends in Sampled Billboard Song Lyrics by Decade", x = "Decade", y = "Count")
 ```
 
-Looking at the count bar graph, Joy is still by far the most common top emotion, appearing in nearly 25 songs. Yet, the count gets much small after the 90s. This makes sense because the data we have access to only goes up to 2016, so the 2010 would have less data. For the 2000s decade, it's possible for some reason we could not find the lyrics to the songs, or a top emotion could not be specified. Let's check where the missing emotions are:
+Top 20 Songs:
+
+Looking at the count bar graph, Joy is still by far the most common top emotion, appearing in nearly 25 songs. Yet, the count gets much small after the 90s. This makes sense because the data we have access to only goes up to 2016, so the 2010 would have less data. For the 2000s decade, it's possible for some reason we could not find the lyrics to the songs, or a top emotion could not be specified.
+
+Sampled:
+
+Joy is still the top emotion for random sampled data. It looks like sampled data has the same issue.
+
+Let's check where the missing emotions are:
 
 ```{r}
 songs_with_emotions |>
   filter(is.na(top_emotion)) |>
   group_by(decade = floor(year / 10) * 10) |>
   summarise(total = n())
+
+sample_songs_with_emotions |>
+  filter(is.na(top_emotion)) |>
+  group_by(decade = floor(year / 10) * 10) |>
+  summarise(total = n())
 ```
 
-As you can see, the decade with the most missing emotions is the 2000s decade. If we were doing further analysis with more time, we could pinpoint exactly why this data is missing.
+As you can see, the decade with the most missing emotions is the 2000s decade. If we were doing further analysis with more time, we could pinpoint exactly why this data is missing. The sampled data has a bit less missing values in the 2000s.
 
 Let's make another percentage graph to look at the proportions:
 
@@ -1438,10 +1462,27 @@ songs_with_emotions_grouped_by_decade_pct <- songs_with_emotions_grouped_by_deca
 songs_with_emotions_grouped_by_decade_pct |>
   ggplot(aes(x = factor(decade), y = percent, fill = top_emotion)) +
   geom_col(position = "dodge") +
-  labs(title = "Emotion Trends in Billboard Lyrics by Decade", x = "Decade", y = "Percentage")
+  labs(title = "Emotion Trends in Top 20 Billboard Song Lyrics by Decade", x = "Decade", y = "Percentage")
+
+# Sampled Data
+sample_songs_with_emotions_grouped_by_decade_pct <- sample_songs_with_emotions_grouped_by_decade |>
+  group_by(decade) |>
+  mutate(percent = n / sum(n)) |>
+  ungroup()
+
+sample_songs_with_emotions_grouped_by_decade_pct |>
+  ggplot(aes(x = factor(decade), y = percent, fill = top_emotion)) +
+  geom_col(position = "dodge") +
+  labs(title = "Emotion Trends in Sampled Billboard Song Lyrics by Decade", x = "Decade", y = "Percentage")
 ```
 
+Top 20 Songs:
+
 This graph looks a lot more stabilized. This graph still shows Joy as the top emotion for each decade, yet this percentage decreases in the 2000s. We can also see that Anger percentage increases in the 2000s, then drops in the 2010s. This makes one wonder if world events occurring the 2000s changed overall population sentiment, which is shown in the art/music that was released during that time. Joy showed the highest percentage in 90s. Additionally, Trust decreases in the 90s and 2000s, then increases again in the 2010 decade.
+
+Sampled:
+
+The sampled data shows pretty similar results. Anticpation decreases over the decades, and fear has a lower percentage in the 2010s. Trust remains a bit more constant over the decades compared to the top 20 songs.
 
 Now let's look at overall Positive vs Negative emotions, and how they've changed over time:
 
@@ -1461,13 +1502,38 @@ songs_with_emotions_polarity |>
   mutate(prop = n / sum(n)) |>
   ggplot(aes(x = as.numeric(year), y = prop, color = polarity)) +
   geom_line(size = 1.2) +
-  labs(title = "Positive vs. Negative Emotional Trends Over Time",
+  labs(title = "Positive vs. Negative Emotional Trends Over Time (Top 20 Songs per Year)",
+       x = "Year", y = "Proportion of Songs") +
+  theme_minimal(base_size = 14)
+
+# Sampled Data
+sample_songs_with_emotions_polarity <- sample_songs_with_emotions |>
+  filter(!is.na(top_emotion)) |>
+  mutate(polarity = case_when(
+    top_emotion %in% c("joy", "trust", "anticipation") ~ "Positive",
+    top_emotion %in% c("sadness", "anger", "fear", "disgust") ~ "Negative",
+    TRUE ~ "Neutral"
+  ))
+
+sample_songs_with_emotions_polarity |>
+  count(year, polarity) |>
+  group_by(year) |>
+  mutate(prop = n / sum(n)) |>
+  ggplot(aes(x = as.numeric(year), y = prop, color = polarity)) +
+  geom_line(size = 1.2) +
+  labs(title = "Positive vs. Negative Emotional Trends Over Time (Sampled Data)",
        x = "Year", y = "Proportion of Songs") +
   theme_minimal(base_size = 14)
 
 ```
 
-Overall there's no major trend shown in this graph, but we can see in the 2000s positive emotions decreased, while negative emotions increased surpassing positive. This corresponds with our bar graph data.
+Top 20 songs:
+
+Overall there's no major trend shown in this graph, but we can see in the 2000s positive emotions decreased, while negative emotions increased surpassing positive. This corresponds with our bar graph data. Also, neutral songs do not appear in the 2010s. 
+
+Sampled:
+
+Overall the sampled data looks very similar to the top 20 songs.
 
 ### Extra Analysis Conclusions
 
