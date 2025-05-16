@@ -1288,9 +1288,7 @@ library(billboard)
 library(geniusr)
 
 #Genius API
-Sys.setenv(GENIUS_API_TOKEN = "9em6wi6o9dAzPw5U_6qjYCOqRa2nQKZ26DjIe4anzXgCsJJT0hP5ZZsZK3UdsrzH")
-Sys.getenv("GENIUS_API_TOKEN")
-?geniusr
+Sys.setenv(GENIUS_API_TOKEN = genius_token)
 
 #Creating Billboard dataframe (Includes top100 songs for each year in range of 1960 - 2016)
 if (require("dplyr")) {
