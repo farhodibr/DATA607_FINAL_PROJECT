@@ -763,7 +763,7 @@ This section is for MySQL (we wanted to include MySQL for this project). We deci
 
 Connecting to MySQL:
 
-```{r eval=FALSE, include=FALSE}
+```{r eval=FALSE, echo=TRUE}
 # get values securely from env
 user <- Sys.getenv("MYSQL_USER")
 password <- Sys.getenv("MYSQL_PASSWORD")
@@ -788,7 +788,7 @@ con <- dbConnect(
 
 Uploading messy table to MySQL:
 
-```{r eval=FALSE, include=FALSE}
+```{r eval=FALSE, echo=TRUE}
 messy_all_artists <- all_artists_songs |>
   mutate(
     song_1 = title,
@@ -811,7 +811,7 @@ dbWriteTable(con, "messy_songs", messy_all_artists, overwrite = TRUE, row.names 
 
 Grabbing the dataframe and tidying it again:
 
-```{r eval=FALSE, include=FALSE}
+```{r eval=FALSE, echo=TRUE}
 messy_from_mysql <- dbReadTable(con, "messy_songs")
 
 tidy_from_mysql <- messy_from_mysql |>
@@ -838,8 +838,9 @@ dbDisconnect(con)
 Next to gather song lyrics, we'll use the Genuis API. Unfortunately, the Genius API can't provide the lyrics directly, but it can provide the URL that contains the lyrics to a song. We'll then have to web scrape again to create a lyrics dataframe.
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
-# Genius API token (token needs to be keyed before submitting the project). I'll leave it as is for now.
-genius_token <- "9em6wi6o9dAzPw5U_6qjYCOqRa2nQKZ26DjIe4anzXgCsJJT0hP5ZZsZK3UdsrzH"
+# Get the API Key
+genius_info <- read_csv("https://raw.githubusercontent.com/farhodibr/DATA607_FINAL_PROJECT/refs/heads/main/genius_API.csv")
+genius_token <- genius_info$api_token
 
 #For example we can use this song
 song_name <- "Yesterday"
@@ -847,10 +848,6 @@ artist_band <- "The Beatles"
 
 # This function searches Genius for a song URL
 search_song_final <- function(song_title, artist_name) {
-  # Heads up: Best practice is to load the token securely, not hardcode it.
-  # e.g., using Sys.getenv("GENIUS_API_TOKEN")
-  genius_token <- "9em6wi6o9dAzPw5U_6qjYCOqRa2nQKZ26DjIe4anzXgCsJJT0hP5ZZsZK3UdsrzH" # Using hardcoded token for this example
-
   # Setting up to call the Genius API's search endpoint
  base_url <- "https://api.genius.com/search"
   query <- list(q = paste(song_title, artist_name))
@@ -1178,7 +1175,9 @@ word_freq_decade_years |>
          y = "Count")
 ```
 
-We can see here that love is the most frequent word, and is the only word that has a positive or negative emotion attached to it. Possibly the most interesting takeaway from this graph is that grandma is in top words.
+We can see here that love is the most frequent word, and is the only word that has a positive or negative emotion attached to it. For this we tried the "bing" lexicon which categorizes into either positive or negative sentiment (binary), and it could not determine a sentiment for most of these words.
+
+Possibly the most interesting takeaway from this graph is that grandma is one of the top words.
 
 Sentiments for each decade:
 
@@ -1191,7 +1190,7 @@ valid_sentiments_by_decade |>
        x = "Year", y = "Count") 
 ```
 
-Over time, the emotion represented for each decade is joy excluding 2010. That particular year had more sad songs than joyful.
+Over time, the emotion represented for each decade is joy excluding 2000. The year 2000 had more anticipation songs than joyful.
 
 Top Emotions in Songs by Top 10 Artists:
 
@@ -1251,6 +1250,8 @@ valid_sentiments %>%
   arrange(desc(num_unique_emotions))
 ```
 
+This chart shows us that Bob Dylan and The Beach Boys show the greatest diversity of emotions. Most artists span 2–3 emotions in their top 5 songs.
+
 ## Conclusions
 
 Our analysis showed us that:
@@ -1287,9 +1288,7 @@ library(billboard)
 library(geniusr)
 
 #Genius API
-Sys.setenv(GENIUS_API_TOKEN = "9em6wi6o9dAzPw5U_6qjYCOqRa2nQKZ26DjIe4anzXgCsJJT0hP5ZZsZK3UdsrzH")
-Sys.getenv("GENIUS_API_TOKEN")
-?geniusr
+Sys.setenv(GENIUS_API_TOKEN = genius_token)
 
 #Creating Billboard dataframe (Includes top100 songs for each year in range of 1960 - 2016)
 if (require("dplyr")) {
@@ -1330,9 +1329,9 @@ These dataframes, one for the top 20, and the other for a group of random 20 son
 
 #### Genius API Integration
 
--   We tapped into the Genius API using the geniusr package, so that OAuth tokens, request construction, and JSON parsing all happen behind the scenes.
+-   We tapped into the Genius API using the `geniusr` package, so that OAuth tokens, request construction, and JSON parsing all happen behind the scenes.
 
--   geniusr returns perfectly tidy data frames from nested JSON and even handles token refreshes and rate‑limit retries automatically.
+-   `geniusr` returns perfectly tidy data frames from nested JSON and even handles token refreshes and rate‑limit retries automatically.
 
 -   That let us pull song metadata and lyric URLs from Genius with a single function call—no low‑level HTTP or manual JSON wrangling required.
 
