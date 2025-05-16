@@ -838,8 +838,9 @@ dbDisconnect(con)
 Next to gather song lyrics, we'll use the Genuis API. Unfortunately, the Genius API can't provide the lyrics directly, but it can provide the URL that contains the lyrics to a song. We'll then have to web scrape again to create a lyrics dataframe.
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
-# Genius API token (token needs to be keyed before submitting the project). I'll leave it as is for now.
-genius_token <- "9em6wi6o9dAzPw5U_6qjYCOqRa2nQKZ26DjIe4anzXgCsJJT0hP5ZZsZK3UdsrzH"
+# Get the API Key
+genius_info <- read_csv("https://raw.githubusercontent.com/farhodibr/DATA607_FINAL_PROJECT/refs/heads/main/genius_API.csv")
+genius_token <- genius_info$api_token
 
 #For example we can use this song
 song_name <- "Yesterday"
@@ -847,10 +848,6 @@ artist_band <- "The Beatles"
 
 # This function searches Genius for a song URL
 search_song_final <- function(song_title, artist_name) {
-  # Heads up: Best practice is to load the token securely, not hardcode it.
-  # e.g., using Sys.getenv("GENIUS_API_TOKEN")
-  genius_token <- "9em6wi6o9dAzPw5U_6qjYCOqRa2nQKZ26DjIe4anzXgCsJJT0hP5ZZsZK3UdsrzH" # Using hardcoded token for this example
-
   # Setting up to call the Genius API's search endpoint
  base_url <- "https://api.genius.com/search"
   query <- list(q = paste(song_title, artist_name))
