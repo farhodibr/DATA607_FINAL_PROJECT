@@ -1103,6 +1103,9 @@ head(valid_sentiments)
 
 We now have a tidy data frame, `valid_sentiments` where each observation represents a song, artist, and the top emotion for that song.
 
+This allows for the data to be easily summarized and grouped without reshaping. We are also able to make very straightforward joins with lexicons like 'nrc' and 'bing' or other lookup tables. Tidying up this table future-proofed it with the scalability factor since we can append new columns or stack new tables if needed.
+
+
 ## Analysis
 
 Now we're ready to perform our analysis. Let's look at word frequency for the top songs and analyze the emotions. Note, when looking at decades, we only look at a subset of data, and pick only one year per decade since the code runs so slowly.
