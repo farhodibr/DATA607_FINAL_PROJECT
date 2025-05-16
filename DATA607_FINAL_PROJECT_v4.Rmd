@@ -754,6 +754,7 @@ all_artists_songs <- all_artists_songs |>
 
 head(all_artists_songs)
 ```
+
 We now have a clean, tidy dataframe `all_artists_songs` which contains artist, song title, album and year data. Next we'll add on the emotion for each song.
 
 ## Creating messy SQL database from all_artists_songs and returning it as tidy df
@@ -1037,6 +1038,7 @@ head(words_test, 15)
 scraped_lyrics_test <- get_song_sentiments(words_test, artist_band, song_name, 1)
 head(scraped_lyrics_test, 15)
 ```
+
 Now let's apply those functions to our tidy `artist_song_list` dataframe to create a top emotion variable:
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
@@ -1228,11 +1230,11 @@ ggplot(valid_sentiments, aes(x = fct_infreq(top_emotion), fill = artist)) +
 
 This bar chart shows the most common emotional tone for songs by each of the top 10 Rolling Stone artists based on NRC sentiment analysis.
 
--    **Joy** and **anticipation** are the most dominant emotions across artists, particularly for Marvin Gaye, The Beatles, and Fleetwood Mac.
+-   **Joy** and **anticipation** are the most dominant emotions across artists, particularly for Marvin Gaye, The Beatles, and Fleetwood Mac.
 
--    **Fear** and **sadness** appear most often in Lauryn Hill’s songs, indicating a more emotionally intense or somber tone.
+-   **Fear** and **sadness** appear most often in Lauryn Hill’s songs, indicating a more emotionally intense or somber tone.
 
--    Bob Dylan stands out with a more diverse emotional profile that includes **anger** and **surprise**.
+-   Bob Dylan stands out with a more diverse emotional profile that includes **anger** and **surprise**.
 
 The chart highlights how different artists tend to gravitate toward different emotional themes in their songwriting.
 
@@ -1322,6 +1324,14 @@ head(sample_song_jobs)
 ```
 
 These dataframes, one for the top 20, and the other for a group of random 20 songs, are tidy since each observation represents a single song on the Billboard Top 100. Each cell contains a single value as well.
+
+#### Genius API Integration
+
+-   We tapped into the Genius API using the geniusr package, so that OAuth tokens, request construction, and JSON parsing all happen behind the scenes.
+
+-   geniusr returns perfectly tidy data frames from nested JSON and even handles token refreshes and rate‑limit retries automatically.
+
+-   That let us pull song metadata and lyric URLs from Genius with a single function call—no low‑level HTTP or manual JSON wrangling required.
 
 Now let's add on the top emotion for each song:
 
@@ -1529,7 +1539,7 @@ sample_songs_with_emotions_polarity |>
 
 Top 20 songs:
 
-Overall there's no major trend shown in this graph, but we can see in the 2000s positive emotions decreased, while negative emotions increased surpassing positive. This corresponds with our bar graph data. Also, neutral songs do not appear in the 2010s. 
+Overall there's no major trend shown in this graph, but we can see in the 2000s positive emotions decreased, while negative emotions increased surpassing positive. This corresponds with our bar graph data. Also, neutral songs do not appear in the 2010s.
 
 Sampled:
 
@@ -1543,9 +1553,3 @@ This analysis showed us that:
 -   Anticipation consistently takes up the 2nd highest percentage of emotions
 -   Joy decreased while Anger increased in the 2000s
 -   The major change in positive vs negative trend was in the 2000s where negative emotions were higher than positive
-
-
-
-
-
-
