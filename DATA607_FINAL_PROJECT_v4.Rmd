@@ -1283,7 +1283,7 @@ Focusing on just the Rolling Stone's top artists did not provide us artists and 
 
 Let's load `billboard`'s `wiki_hot_100s` dataframe which contains the Billboard Top 100 songs:
 
-```{r}
+```{r echo=TRUE}
 library(billboard)
 library(geniusr)
 
@@ -1337,7 +1337,7 @@ These dataframes, one for the top 20, and the other for a group of random 20 son
 
 Now let's add on the top emotion for each song:
 
-```{r}
+```{r echo=TRUE}
 #doParallel
 num_cores <- parallel::detectCores() - 1  # leave 1 core for safety
 cl <- makeCluster(num_cores)
@@ -1410,7 +1410,7 @@ We now have tidy data frames where each observation represent a song, and it's t
 
 Now we can start our analysis. Let's see how the emotions of popular songs have changed through the years by decade:
 
-```{r}
+```{r echo=TRUE}
 songs_with_emotions_grouped_by_decade <- songs_with_emotions |>
   filter(!is.na(top_emotion)) |>
   mutate(year = as.numeric(year)) |>
@@ -1447,7 +1447,7 @@ Joy is still the top emotion for random sampled data. It looks like sampled data
 
 Let's check where the missing emotions are:
 
-```{r}
+```{r echo=TRUE}
 songs_with_emotions |>
   filter(is.na(top_emotion)) |>
   group_by(decade = floor(year / 10) * 10) |>
@@ -1463,7 +1463,7 @@ As you can see, the decade with the most missing emotions is the 2000s decade. I
 
 Let's make another percentage graph to look at the proportions:
 
-```{r}
+```{r echo=TRUE}
 # Emotion Trends in Billboard Lyrics by Decade
 # Focus on percentage
 songs_with_emotions_grouped_by_decade_pct <- songs_with_emotions_grouped_by_decade |>
@@ -1498,7 +1498,7 @@ The sampled data shows pretty similar results. Anticpation decreases over the de
 
 Now let's look at overall Positive vs Negative emotions, and how they've changed over time:
 
-```{r}
+```{r echo=TRUE}
 # Positive vs. Negative Emotional Trends Over Time
 songs_with_emotions_polarity <- songs_with_emotions |>
   filter(!is.na(top_emotion)) |>
