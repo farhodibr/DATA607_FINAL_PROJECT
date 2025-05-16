@@ -1412,7 +1412,7 @@ songs_with_emotions_grouped_by_decade |>
   labs(title = "Emotion Trends in Top 20 Billboard Song Lyrics by Decade", x = "Decade", y = "Count")
 
 # Sampled Data
-sample_songs_with_emotions_grouped_by_decade <- songs_with_emotions_sample |>
+sample_songs_with_emotions_grouped_by_decade <- sample_songs_with_emotions |>
   filter(!is.na(top_emotion)) |>
   mutate(year = as.numeric(year)) |>
   group_by(decade = floor(year / 10) * 10, top_emotion)|>
@@ -1473,7 +1473,7 @@ sample_songs_with_emotions_grouped_by_decade_pct <- sample_songs_with_emotions_g
 sample_songs_with_emotions_grouped_by_decade_pct |>
   ggplot(aes(x = factor(decade), y = percent, fill = top_emotion)) +
   geom_col(position = "dodge") +
-  labs(title = "Emotion Trends in Sampled Billboard Song Lyrics by Decade", x = "Decade", y = "Percentage")
+  labs(title = "Proportions Of Emotion Trends in Sampled Billboard Song Lyrics by Decade", x = "Decade", y = "Percentage")
 ```
 
 Top 20 Songs:
@@ -1543,3 +1543,9 @@ This analysis showed us that:
 -   Anticipation consistently takes up the 2nd highest percentage of emotions
 -   Joy decreased while Anger increased in the 2000s
 -   The major change in positive vs negative trend was in the 2000s where negative emotions were higher than positive
+
+
+
+
+
+
