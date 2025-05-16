@@ -763,7 +763,7 @@ This section is for MySQL (we wanted to include MySQL for this project). We deci
 
 Connecting to MySQL:
 
-```{r eval=FALSE, include=FALSE}
+```{r eval=FALSE, echo=TRUE}
 # get values securely from env
 user <- Sys.getenv("MYSQL_USER")
 password <- Sys.getenv("MYSQL_PASSWORD")
@@ -788,7 +788,7 @@ con <- dbConnect(
 
 Uploading messy table to MySQL:
 
-```{r eval=FALSE, include=FALSE}
+```{r eval=FALSE, echo=TRUE}
 messy_all_artists <- all_artists_songs |>
   mutate(
     song_1 = title,
@@ -811,7 +811,7 @@ dbWriteTable(con, "messy_songs", messy_all_artists, overwrite = TRUE, row.names 
 
 Grabbing the dataframe and tidying it again:
 
-```{r eval=FALSE, include=FALSE}
+```{r eval=FALSE, echo=TRUE}
 messy_from_mysql <- dbReadTable(con, "messy_songs")
 
 tidy_from_mysql <- messy_from_mysql |>
@@ -1178,7 +1178,9 @@ word_freq_decade_years |>
          y = "Count")
 ```
 
-We can see here that love is the most frequent word, and is the only word that has a positive or negative emotion attached to it. Possibly the most interesting takeaway from this graph is that grandma is in top words.
+We can see here that love is the most frequent word, and is the only word that has a positive or negative emotion attached to it. For this we tried the "bing" lexicon which categorizes into either positive or negative sentiment (binary), and it could not determine a sentiment for most of these words.
+
+Possibly the most interesting takeaway from this graph is that grandma is one of the top words.
 
 Sentiments for each decade:
 
@@ -1191,7 +1193,7 @@ valid_sentiments_by_decade |>
        x = "Year", y = "Count") 
 ```
 
-Over time, the emotion represented for each decade is joy excluding 2010. That particular year had more sad songs than joyful.
+Over time, the emotion represented for each decade is joy excluding 2000. The year 2000 had more anticipation songs than joyful.
 
 Top Emotions in Songs by Top 10 Artists:
 
@@ -1250,6 +1252,8 @@ valid_sentiments %>%
   summarise(num_unique_emotions = n_distinct(top_emotion)) %>%
   arrange(desc(num_unique_emotions))
 ```
+
+This chart shows us that Bob Dylan and The Beach Boys show the greatest diversity of emotions. Most artists span 2–3 emotions in their top 5 songs.
 
 ## Conclusions
 
@@ -1330,9 +1334,9 @@ These dataframes, one for the top 20, and the other for a group of random 20 son
 
 #### Genius API Integration
 
--   We tapped into the Genius API using the geniusr package, so that OAuth tokens, request construction, and JSON parsing all happen behind the scenes.
+-   We tapped into the Genius API using the `geniusr` package, so that OAuth tokens, request construction, and JSON parsing all happen behind the scenes.
 
--   geniusr returns perfectly tidy data frames from nested JSON and even handles token refreshes and rate‑limit retries automatically.
+-   `geniusr` returns perfectly tidy data frames from nested JSON and even handles token refreshes and rate‑limit retries automatically.
 
 -   That let us pull song metadata and lyric URLs from Genius with a single function call—no low‑level HTTP or manual JSON wrangling required.
 
